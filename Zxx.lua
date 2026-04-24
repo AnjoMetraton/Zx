@@ -2,7 +2,6 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-repeat task.wait() until Players.LocalPlayer
 local LocalPlayer = Players.LocalPlayer
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -35,7 +34,7 @@ local function Notify(txt)
     table.insert(NList,n)
     task.delay(2.8,function()
         T(n,{Position=UDim2.new(0,0,1.5,0),BackgroundTransparency=1},0.25)
-        task.wait(0.25); n:Destroy()
+        task.wait(0.25) n:Destroy()
         table.remove(NList,1)
     end)
 end
@@ -47,8 +46,8 @@ local TB = New("Frame",{Size=UDim2.new(1,0,0,50),BackgroundColor3=Color3.fromRGB
 New("UICorner",{CornerRadius=UDim.new(0,14),Parent=TB})
 New("TextLabel",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Text="Zx MENU",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=20,TextXAlignment=Enum.TextXAlignment.Center,Parent=TB})
 New("Frame",{Size=UDim2.new(1,0,0,2),Position=UDim2.new(0,0,1,0),BackgroundColor3=RGB(1),BorderSizePixel=0,Parent=TB})
-local function Btn(txt,y,s)
-    local b = New("TextButton",{Size=UDim2.new(0.85,0,0,40),Position=UDim2.new(0.075,0,y,0),BackgroundColor3=s and Color3.fromRGB(0,80,0) or Color3.fromRGB(20,20,20),BorderSizePixel=0,Text=txt,Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=14,TextXAlignment=Enum.TextXAlignment.Left,Parent=Panel,Active=true})
+
+local function Btn(txt,y,s)    local b = New("TextButton",{Size=UDim2.new(0.85,0,0,40),Position=UDim2.new(0.075,0,y,0),BackgroundColor3=s and Color3.fromRGB(0,80,0) or Color3.fromRGB(20,20,20),BorderSizePixel=0,Text=txt,Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=14,TextXAlignment=Enum.TextXAlignment.Left,Parent=Panel,Active=true})
     New("UICorner",{CornerRadius=UDim.new(0,8),Parent=b})
     New("UIStroke",{Color=s and Color3.fromRGB(0,120,0) or Color3.fromRGB(45,45,45),Thickness=1.5,Parent=b})
     b.MouseEnter:Connect(function() T(b,{BackgroundTransparency=0.1},0.15) end)
@@ -96,8 +95,8 @@ local function Checkbox(txt,y,active)
     end)
     table.insert(checkboxes, {Frame=f, Indicator=ch, Active=active})
 end
-Checkbox("Cabeça",0.71,true)
-Checkbox("Peito",0.77,false)
+
+Checkbox("Cabeça",0.71,true)Checkbox("Peito",0.77,false)
 Checkbox("Pé",0.83,false)
 
 local CV = New("Frame",{Name="Circle",Size=UDim2.new(0,1000,0,1000),Position=UDim2.new(0.5,-500,0.5,-500),BackgroundTransparency=1,BorderSizePixel=0,Visible=false,Parent=ScreenGui})
@@ -128,9 +127,9 @@ UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInp
 UserInputService.InputChanged:Connect(function(i)
     if dS and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
         local x=math.clamp((i.Position.X-STR.AbsolutePosition.X)/STR.AbsoluteSize.X,0,1)
-        SF.Size=UDim2.new(x,0,1,0); ST.Position=UDim2.new(x,-6,0.5,-6)
-        cS=math.floor(x*900+100); SLT.Text="Raio: "..cS
-        CV.Size=UDim2.new(0,cS*2,0,cS*2); CV.Position=UDim2.new(0.5,-cS,0.5,-cS)
+        SF.Size=UDim2.new(x,0,1,0) ST.Position=UDim2.new(x,-6,0.5,-6)
+        cS=math.floor(x*900+100) SLT.Text="Raio: "..cS
+        CV.Size=UDim2.new(0,cS*2,0,cS*2) CV.Position=UDim2.new(0.5,-cS,0.5,-cS)
     end
 end)
 
@@ -138,15 +137,15 @@ local dP,dSt,pSt=false,nil,nil
 Panel.InputBegan:Connect(function(i)
     if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then
         local rx=i.Position.X-Panel.AbsolutePosition.X
-        if rx<25 or rx>Panel.AbsoluteSize.X-25 then dP=true; dSt=i.Position; pSt=Panel.Position end
+        if rx<25 or rx>Panel.AbsoluteSize.X-25 then dP=true dSt=i.Position pSt=Panel.Position end
     end
 end)
 UserInputService.InputChanged:Connect(function(i)
     if dP and (i.UserInputType==Enum.UserInputType.MouseMovement or i.UserInputType==Enum.UserInputType.Touch) then
         local d=i.Position-dSt
         Panel.Position=UDim2.new(pSt.X.Scale,pSt.X.Offset+d.X,pSt.Y.Scale,pSt.Y.Offset+d.Y)
-    endend)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dP=false end end)
+    end
+end)UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 or i.UserInputType==Enum.UserInputType.Touch then dP=false end end)
 
 RunService.RenderStepped:Connect(function()
     local cam=workspace.CurrentCamera
@@ -161,7 +160,7 @@ RunService.RenderStepped:Connect(function()
                 if part then
                     local v,on=cam:WorldToViewportPoint(part.Position)
                     local d=(Vector2.new(v.X,v.Y)-c).Magnitude
-                    if d<bD and on then bD=d; best=part end
+                    if d<bD and on then bD=d best=part end
                 end
             end
         end
@@ -178,7 +177,7 @@ RunService.RenderStepped:Connect(function()
     end
     local t=tick()
     PS.Color=RGB(t)
-    if rCO and CV.Visible then CVS.Color=RGB(t); CVF.BackgroundColor3=RGB(t) elseif CV.Visible then CVS.Color=Color3.new(0.6,0,1); CVF.BackgroundColor3=Color3.new(0.6,0,1) end
+    if rCO and CV.Visible then CVS.Color=RGB(t) CVF.BackgroundColor3=RGB(t) elseif CV.Visible then CVS.Color=Color3.new(0.6,0,1) CVF.BackgroundColor3=Color3.new(0.6,0,1) end
 end)
 
 RunService.Heartbeat:Connect(function()
@@ -187,7 +186,7 @@ RunService.Heartbeat:Connect(function()
         for _,p in ipairs(Players:GetPlayers()) do
             if p~=LocalPlayer and p.Character then
                 if not eC[p] then
-                    local h=Instance.new("Highlight"); h.FillColor=rEO and RGB(t) or Color3.new(0.6,0,1); h.OutlineColor=Color3.new(1,1,1); h.FillTransparency=0.5; h.OutlineTransparency=0.15; h.Adornee=p.Character; h.Parent=p.Character; eC[p]=h
+                    local h=Instance.new("Highlight") h.FillColor=rEO and RGB(t) or Color3.new(0.6,0,1) h.OutlineColor=Color3.new(1,1,1) h.FillTransparency=0.5 h.OutlineTransparency=0.15 h.Adornee=p.Character h.Parent=p.Character eC[p]=h
                 else
                     if rEO then eC[p].FillColor=RGB(t) else eC[p].FillColor=Color3.new(0.6,0,1) end
                 end
@@ -195,17 +194,17 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
-Players.PlayerRemoving:Connect(function(p) if eC[p] then eC[p]:Destroy(); eC[p]=nil end end)
+Players.PlayerRemoving:Connect(function(p) if eC[p] then eC[p]:Destroy() eC[p]=nil end end)
 
 task.spawn(function()
     for i=0,100,2 do
         LD.Text = "Carregando"..string.rep(".", math.floor(i/20)%3 + 1)
-        LB.Size=UDim2.new(0,i*3.2,0,8); LB.Position=UDim2.new(0.5,-160+i*1.6,0.5,80); LB.BackgroundColor3=RGB(i*0.05)
-        LT.Text=i.."%"; LS.Color=RGB(i*0.08); task.wait(0.018)
+        LB.Size=UDim2.new(0,i*3.2,0,8) LB.Position=UDim2.new(0.5,-160+i*1.6,0.5,80) LB.BackgroundColor3=RGB(i*0.05)
+        LT.Text=i.."%" LS.Color=RGB(i*0.08) task.wait(0.018)
     end
     T(Load,{BackgroundTransparency=1,Size=UDim2.new(0,380,0,220)},0.4)
-    T(LS,{Transparency=1},0.3); T(LB,{BackgroundTransparency=1},0.3); T(LD,{TextTransparency=1},0.3); T(LT,{TextTransparency=1},0.3)
-    task.wait(0.4); Load:Destroy()
-    Panel.Visible=true; T(Panel,{Position=UDim2.new(0.5,-140,0.5,-230)},0.65)
+    T(LS,{Transparency=1},0.3) T(LB,{BackgroundTransparency=1},0.3) T(LD,{TextTransparency=1},0.3) T(LT,{TextTransparency=1},0.3)
+    task.wait(0.4) Load:Destroy()
+    Panel.Visible=true T(Panel,{Position=UDim2.new(0.5,-140,0.5,-230)},0.65)
     Notify("Zx Carregado")
 end)
