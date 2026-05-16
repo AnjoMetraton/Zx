@@ -16,6 +16,44 @@ end
 local function New(c,p) local o=Instance.new(c) for k,v in pairs(p or {}) do o[k]=v end return o end
 local function Tween(o,p,d) TweenService:Create(o,TweenInfo.new(d or 0.3,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),p):Play() end
 
+local function GetNameColor(username)
+	local colors = {
+		Color3.fromRGB(253,41,67), Color3.fromRGB(1,162,255), Color3.fromRGB(2,184,87),
+		Color3.fromRGB(180,0,255), Color3.fromRGB(255,102,0), Color3.fromRGB(255,255,0),
+		Color3.fromRGB(0,255,255), Color3.fromRGB(255,0,255)
+	}
+	local value = 0
+	for i = 1, #username do
+		local v = string.byte(username, i)
+		if (#username - i) % 4 >= 2 then v = -v end
+		value += v
+	end
+	return colors[(value % #colors) + 1]
+end
+
+local MyChatColor = GetNameColor(LocalPlayer.Name)
+local PlayerChatColors = {}
+
+local function UpdatePlayerColor(player)
+	if player == LocalPlayer then return end
+	PlayerChatColors[player] = GetNameColor(player.Name)
+end
+
+local function ColorDistance(c1, c2)
+	local dr = c1.R - c2.R
+	local dg = c1.G - c2.G
+	local db = c1.B - c2.B
+	return dr*dr + dg*dg + db*db
+end
+
+for _,p in ipairs(Players:GetPlayers()) do
+	UpdatePlayerColor(p)
+end
+Players.PlayerAdded:Connect(UpdatePlayerColor)
+Players.PlayerRemoving:Connect(function(p)
+	PlayerChatColors[p] = nil
+end)
+
 local ScreenGui = New("ScreenGui",{Name="ZxMenu",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LocalPlayer:WaitForChild("PlayerGui")})
 
 local LoadBG = New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=10,Parent=ScreenGui})
@@ -250,32 +288,48 @@ local function getTargetPart(player)
 end
 
 local function isVisible(root)
-	local cam=workspace.CurrentCamera; if not cam then return false end
+	local cam=workspace.CurrentCamera
+	if not cam then return false end
 	local origin=cam.CFrame.Position
-	local dir=root.Position-origin
-	local ray=Ray.new(origin,dir.Unit*dir.Magnitude)
-	local hit=workspace:FindPartOnRayWithIgnoreList(ray,{LocalPlayer.Character})
-	if not hit then return true end
-	local hc=hit:FindFirstAncestorOfClass("Model")
-	for _,p in ipairs(Players:GetPlayers()) do if p.Character==hc then return true end end
-	return false
+	local direction=root.Position-origin
+	local params=RaycastParams.new()
+	params.FilterDescendantsInstances={LocalPlayer.Character}
+	params.FilterType=Enum.RaycastFilterType.Exclude
+	local result=workspace:Raycast(origin,direction,params)
+	if not result then return true end
+	return result.Instance and result.Instance:FindFirstAncestorOfClass("Model")==root.Parent
 end
 
 local function getClosest(cam)
-	local best,bd=nil,math.huge
-	local center=Vector2.new(cam.ViewportSize.X/2,cam.ViewportSize.Y/2)
+	local best, bd = nil, math.huge
+	local center = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
+
 	for _,player in ipairs(Players:GetPlayers()) do
-		if player~=LocalPlayer and player.Character then
-			local hum=player.Character:FindFirstChildOfClass("Humanoid")
-			local root=player.Character:FindFirstChild("HumanoidRootPart")
-			if hum and hum.Health>0 and root then
-				if ignoreTeam and LocalPlayer.Team and player.Team==LocalPlayer.Team then continue end
-				if ignoreWall and not isVisible(root) then continue end
-				local sp,on=cam:WorldToViewportPoint(root.Position)
-				if on then
-					local d=(Vector2.new(sp.X,sp.Y)-center).Magnitude
-					if d<bd then bd=d; best=player end
-				end
+		if player == LocalPlayer or not player.Character then continue end
+
+		local hum = player.Character:FindFirstChildOfClass("Humanoid")
+		local root = player.Character:FindFirstChild("HumanoidRootPart")
+		if not (hum and hum.Health > 0 and root) then continue end
+
+		if ignoreTeam and LocalPlayer.Team and player.Team == LocalPlayer.Team then
+			continue
+		end
+
+		if ignoreTeam then
+			local targetColor = PlayerChatColors[player]
+			if targetColor and ColorDistance(MyChatColor, targetColor) < 0.065 then
+				continue
+			end
+		end
+
+		if ignoreWall and not isVisible(root) then continue end
+
+		local sp, onScreen = cam:WorldToViewportPoint(root.Position)
+		if onScreen then
+			local dist = (Vector2.new(sp.X, sp.Y) - center).Magnitude
+			if dist < bd then
+				bd = dist
+				best = player
 			end
 		end
 	end
@@ -288,11 +342,16 @@ local function resetCam()
 end
 
 local function playFlyAnim(id)
-	local char=LocalPlayer.Character; if not char then return end
-	local hum=char:FindFirstChildOfClass("Humanoid"); if not hum then return end
-	local animator=hum:FindFirstChildOfClass("Animator"); if not animator then return end
+	local char=LocalPlayer.Character
+	if not char then return end
+	local hum=char:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+	local animator=hum:FindFirstChildOfClass("Animator")
+	if not animator then return end
+
 	if flyAnimTrack and flyAnimTrack.IsPlaying then flyAnimTrack:Stop(0.15) end
-	local anim=Instance.new("Animation"); anim.AnimationId=id
+	local anim=Instance.new("Animation")
+	anim.AnimationId=id
 	local ok,track=pcall(function() return animator:LoadAnimation(anim) end)
 	anim:Destroy()
 	if ok and track then
@@ -311,14 +370,19 @@ local function stopFlyAnim()
 end
 
 local function activateFly()
-	local char=LocalPlayer.Character; if not char then return end
-	local root=char:FindFirstChild("HumanoidRootPart"); if not root then return end
-	local hum=char:FindFirstChildOfClass("Humanoid"); if not hum then return end
+	local char=LocalPlayer.Character
+	if not char then return end
+	local root=char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+	local hum=char:FindFirstChildOfClass("Humanoid")
+	if not hum then return end
+
 	hum.PlatformStand=true
 	flyBV=Instance.new("BodyVelocity"); flyBV.Velocity=Vector3.zero; flyBV.MaxForce=Vector3.new(1e5,1e5,1e5); flyBV.P=1e4; flyBV.Parent=root
 	flyBG=Instance.new("BodyGyro"); flyBG.MaxTorque=Vector3.new(0,4e5,0); flyBG.P=1e4; flyBG.CFrame=root.CFrame; flyBG.Parent=root
 	flyFloor=Instance.new("Part"); flyFloor.Size=Vector3.new(3,0.2,3); flyFloor.Anchored=false; flyFloor.CanCollide=true; flyFloor.Transparency=1; flyFloor.CastShadow=false; flyFloor.Name="ViltFloor"; flyFloor.Parent=workspace
 	local weld=Instance.new("WeldConstraint"); weld.Part0=flyFloor; weld.Part1=root; weld.Parent=flyFloor
+
 	task.spawn(function() task.wait(0.1); playFlyAnim(ANIM_IDLE) end)
 	FlyPanel.Visible=true
 	Tween(FlyPanel,{Position=UDim2.new(0.5,-115,1,-128)},0.4)
@@ -327,8 +391,11 @@ end
 local function deactivateFly()
 	local char=LocalPlayer.Character
 	if char then
-		local hum=char:FindFirstChildOfClass("Humanoid"); if hum then hum.PlatformStand=false end
-		for _,p in ipairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide=true end end
+		local hum=char:FindFirstChildOfClass("Humanoid")
+		if hum then hum.PlatformStand=false end
+		for _,p in ipairs(char:GetDescendants()) do
+			if p:IsA("BasePart") then p.CanCollide=true end
+		end
 	end
 	if flyBV then flyBV:Destroy(); flyBV=nil end
 	if flyBG then flyBG:Destroy(); flyBG=nil end
@@ -342,67 +409,105 @@ local function deactivateFly()
 end
 
 local function removeESPName(p)
-	if espNameCache[p] then if espNameCache[p].Parent then espNameCache[p]:Destroy() end espNameCache[p]=nil end
+	if espNameCache[p] then
+		if espNameCache[p].Parent then espNameCache[p]:Destroy() end
+		espNameCache[p]=nil
+	end
 end
 local function createESPName(p)
 	if not p.Character then return end
-	local root=p.Character:FindFirstChild("HumanoidRootPart"); if not root then return end
+	local root=p.Character:FindFirstChild("HumanoidRootPart")
+	if not root then return end
 	removeESPName(p)
-	local bb=Instance.new("BillboardGui"); bb.Size=UDim2.new(0,120,0,26); bb.StudsOffset=Vector3.new(0,3.2,0); bb.AlwaysOnTop=true; bb.ResetOnSpawn=false; bb.Adornee=root; bb.Parent=root
+	local bb=Instance.new("BillboardGui")
+	bb.Size=UDim2.new(0,120,0,26)
+	bb.StudsOffset=Vector3.new(0,3.2,0)
+	bb.AlwaysOnTop=true
+	bb.ResetOnSpawn=false
+	bb.Adornee=root
+	bb.Parent=root
 	New("TextLabel",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Text=p.Name,Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(190,130,255),TextSize=13,TextXAlignment=Enum.TextXAlignment.Center,TextStrokeTransparency=0.3,TextStrokeColor3=Color3.new(0,0,0),Parent=bb})
 	espNameCache[p]=bb
 end
 local function removeESP(p)
-	if espCache[p] then if espCache[p].Parent then espCache[p]:Destroy() end espCache[p]=nil end
+	if espCache[p] then
+		if espCache[p].Parent then espCache[p]:Destroy() end
+		espCache[p]=nil
+	end
 	removeESPName(p)
 end
 local function removeHBVisual(p)
-	if hitboxVisualCache[p] then if hitboxVisualCache[p].Parent then hitboxVisualCache[p]:Destroy() end hitboxVisualCache[p]=nil end
+	if hitboxVisualCache[p] then
+		if hitboxVisualCache[p].Parent then hitboxVisualCache[p]:Destroy() end
+		hitboxVisualCache[p]=nil
+	end
 end
 local function restoreHitboxes()
 	for p,sz in pairs(hitboxOriginals) do
-		if p~=LocalPlayer and p.Character then local r=p.Character:FindFirstChild("HumanoidRootPart"); if r and sz then r.Size=sz end end
+		if p ~= LocalPlayer and p.Character then
+			local r=p.Character:FindFirstChild("HumanoidRootPart")
+			if r and sz then r.Size=sz end
+		end
 		removeHBVisual(p)
 	end
 	hitboxOriginals={}
-	for p,sb in pairs(hitboxVisualCache) do if sb then sb:Destroy() end end
+	for p,sb in pairs(hitboxVisualCache) do
+		if sb then sb:Destroy() end
+	end
 	hitboxVisualCache={}
 end
 
 BtnAim.MouseButton1Click:Connect(function()
-	aimOn=not aimOn; BtnAim.Text="⬡  MIRA: "..(aimOn and "ON" or "OFF"); SetBtn(BtnAim,aimOn)
-	Circle.Visible=aimOn; if not aimOn then resetCam() end
+	aimOn=not aimOn
+	BtnAim.Text="⬡  MIRA: "..(aimOn and "ON" or "OFF")
+	SetBtn(BtnAim,aimOn)
+	Circle.Visible=aimOn
+	if not aimOn then resetCam() end
 	Notify("MIRA "..(aimOn and "ATIVADA" or "DESATIVADA"))
 end)
 
 BtnAimFix.MouseButton1Click:Connect(function()
-	aimFixOn=not aimFixOn; BtnAimFix.Text="⬡  AIMBOT FIX: "..(aimFixOn and "ON" or "OFF"); SetBtn(BtnAimFix,aimFixOn)
+	aimFixOn=not aimFixOn
+	BtnAimFix.Text="⬡  AIMBOT FIX: "..(aimFixOn and "ON" or "OFF")
+	SetBtn(BtnAimFix,aimFixOn)
 	if not aimFixOn then lockedPlayer=nil; LockFrame.Visible=false; resetCam() end
 	Notify("AIMBOT FIX "..(aimFixOn and "ATIVADO" or "DESATIVADO"))
 end)
 
 BtnCircle.MouseButton1Click:Connect(function()
-	rgbCircleOn=not rgbCircleOn; BtnCircle.Text="⬡  RGB CÍRCULO: "..(rgbCircleOn and "ON" or "OFF"); SetBtn(BtnCircle,rgbCircleOn)
+	rgbCircleOn=not rgbCircleOn
+	BtnCircle.Text="⬡  RGB CÍRCULO: "..(rgbCircleOn and "ON" or "OFF")
+	SetBtn(BtnCircle,rgbCircleOn)
 	Notify("RGB CÍRCULO "..(rgbCircleOn and "ATIVADO" or "DESATIVADO"))
 end)
 
 BtnESP.MouseButton1Click:Connect(function()
-	espOn=not espOn; BtnESP.Text="⬡  ESP: "..(espOn and "ON" or "OFF"); SetBtn(BtnESP,espOn)
-	if not espOn then for _,p in ipairs(Players:GetPlayers()) do removeESP(p) end espCache={} end
+	espOn=not espOn
+	BtnESP.Text="⬡  ESP: "..(espOn and "ON" or "OFF")
+	SetBtn(BtnESP,espOn)
+	if not espOn then
+		for _,p in ipairs(Players:GetPlayers()) do removeESP(p) end
+		espCache={}
+	end
 	Notify("ESP "..(espOn and "ATIVADO" or "DESATIVADO"))
 end)
 
 BtnRGBESP.MouseButton1Click:Connect(function()
-	rgbEspOn=not rgbEspOn; BtnRGBESP.Text="⬡  RGB ESP: "..(rgbEspOn and "ON" or "OFF"); SetBtn(BtnRGBESP,rgbEspOn)
+	rgbEspOn=not rgbEspOn
+	BtnRGBESP.Text="⬡  RGB ESP: "..(rgbEspOn and "ON" or "OFF")
+	SetBtn(BtnRGBESP,rgbEspOn)
 	Notify("RGB ESP "..(rgbEspOn and "ATIVADO" or "DESATIVADO"))
 end)
 
 BtnRGBName.MouseButton1Click:Connect(function()
-	rgbNameOn=not rgbNameOn; BtnRGBName.Text="⬡  ESP NOME RGB: "..(rgbNameOn and "ON" or "OFF"); SetBtn(BtnRGBName,rgbNameOn)
+	rgbNameOn=not rgbNameOn
+	BtnRGBName.Text="⬡  ESP NOME RGB: "..(rgbNameOn and "ON" or "OFF")
+	SetBtn(BtnRGBName,rgbNameOn)
 	if not rgbNameOn then
 		for _,p in ipairs(Players:GetPlayers()) do
 			if espNameCache[p] and espNameCache[p].Parent then
-				local lbl=espNameCache[p]:FindFirstChildOfClass("TextLabel"); if lbl then lbl.TextColor3=Color3.fromRGB(190,130,255) end
+				local lbl=espNameCache[p]:FindFirstChildOfClass("TextLabel")
+				if lbl then lbl.TextColor3=Color3.fromRGB(190,130,255) end
 			end
 		end
 	end
@@ -410,50 +515,66 @@ BtnRGBName.MouseButton1Click:Connect(function()
 end)
 
 BtnFly.MouseButton1Click:Connect(function()
-	flyOn=not flyOn; BtnFly.Text="⬡  VILTRUMITA FLY: "..(flyOn and "ON" or "OFF"); SetBtn(BtnFly,flyOn)
+	flyOn=not flyOn
+	BtnFly.Text="⬡  VILTRUMITA FLY: "..(flyOn and "ON" or "OFF")
+	SetBtn(BtnFly,flyOn)
 	if flyOn then task.spawn(activateFly); Notify("VILTRUMITA FLY ATIVADO")
 	else task.spawn(deactivateFly); Notify("VILTRUMITA FLY DESATIVADO") end
 end)
 
 BtnFastFly.MouseButton1Click:Connect(function()
 	if not flyOn then return end
-	fastFlyOn=not fastFlyOn; BtnFastFly.Text="⬡  VOAR RÁPIDO: "..(fastFlyOn and "ON" or "OFF"); SetBtn(BtnFastFly,fastFlyOn)
+	fastFlyOn=not fastFlyOn
+	BtnFastFly.Text="⬡  VOAR RÁPIDO: "..(fastFlyOn and "ON" or "OFF")
+	SetBtn(BtnFastFly,fastFlyOn)
 	task.spawn(function() playFlyAnim(fastFlyOn and ANIM_FAST or ANIM_IDLE) end)
 	Notify("VOAR RÁPIDO "..(fastFlyOn and "ON" or "OFF"))
 end)
 
 HBoxToggle.MouseButton1Click:Connect(function()
-	hitboxOn=not hitboxOn; SetToggle(HBoxToggle,HBoxDot,hitboxOn)
+	hitboxOn=not hitboxOn
+	SetToggle(HBoxToggle,HBoxDot,hitboxOn)
 	if not hitboxOn then restoreHitboxes() end
 	Notify("HITBOX "..(hitboxOn and "ATIVADO" or "DESATIVADO"))
 end)
 
 HBoxRGBToggle.MouseButton1Click:Connect(function()
-	rgbHitboxOn=not rgbHitboxOn; SetToggle(HBoxRGBToggle,HBoxRGBDot,rgbHitboxOn)
+	rgbHitboxOn=not rgbHitboxOn
+	SetToggle(HBoxRGBToggle,HBoxRGBDot,rgbHitboxOn)
 	Notify("RGB BORDA "..(rgbHitboxOn and "ATIVADO" or "DESATIVADO"))
 end)
 
 TeamToggle.MouseButton1Click:Connect(function()
-	ignoreTeam=not ignoreTeam; SetToggle(TeamToggle,TeamDot,ignoreTeam)
+	ignoreTeam=not ignoreTeam
+	SetToggle(TeamToggle,TeamDot,ignoreTeam)
 	if not ignoreTeam and aimFixOn then lockedPlayer=nil end
 	Notify("IGNORAR TIME "..(ignoreTeam and "ON" or "OFF"))
 end)
 
 WallToggle.MouseButton1Click:Connect(function()
-	ignoreWall=not ignoreWall; SetToggle(WallToggle,WallDot,ignoreWall)
+	ignoreWall=not ignoreWall
+	SetToggle(WallToggle,WallDot,ignoreWall)
 	if not ignoreWall and aimFixOn then lockedPlayer=nil end
 	Notify("IGNORAR PAREDE "..(ignoreWall and "ON" or "OFF"))
 end)
 
 local menuOpen=true
 local function CloseMenu()
-	menuOpen=false; Tween(Panel,{Position=UDim2.new(0.5,-145,0.5,1200)},0.4)
-	task.wait(0.35); Panel.Visible=false
-	PopUp.Size=UDim2.new(0,0,0,28); PopUp.Visible=true; Tween(PopUp,{Size=UDim2.new(0,54,0,28)},0.35)
+	menuOpen=false
+	Tween(Panel,{Position=UDim2.new(0.5,-145,0.5,1200)},0.4)
+	task.wait(0.35)
+	Panel.Visible=false
+	PopUp.Size=UDim2.new(0,0,0,28)
+	PopUp.Visible=true
+	Tween(PopUp,{Size=UDim2.new(0,54,0,28)},0.35)
 end
 local function OpenMenu()
-	menuOpen=true; Tween(PopUp,{Size=UDim2.new(0,0,0,28)},0.25); task.wait(0.22)
-	PopUp.Visible=false; Panel.Visible=true; Tween(Panel,{Position=UDim2.new(0.5,-145,0.5,-240)},0.45)
+	menuOpen=true
+	Tween(PopUp,{Size=UDim2.new(0,0,0,28)},0.25)
+	task.wait(0.22)
+	PopUp.Visible=false
+	Panel.Visible=true
+	Tween(Panel,{Position=UDim2.new(0.5,-145,0.5,-240)},0.45)
 end
 CloseBtn.MouseButton1Click:Connect(function() task.spawn(CloseMenu) end)
 
@@ -463,9 +584,12 @@ UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInp
 UserInputService.InputChanged:Connect(function(i)
 	if draggingFOV and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then
 		local x=math.clamp((i.Position.X-SliderTrack.AbsolutePosition.X)/SliderTrack.AbsoluteSize.X,0,1)
-		SliderFill.Size=UDim2.new(x,0,1,0); SliderThumb.Position=UDim2.new(x,-7,0.5,-7)
-		circleRadius=math.floor(x*1490+10); SliderLabel.Text="RAIO: "..circleRadius
-		Circle.Size=UDim2.new(0,circleRadius*2,0,circleRadius*2); Circle.Position=UDim2.new(0.5,-circleRadius,0.5,-circleRadius)
+		SliderFill.Size=UDim2.new(x,0,1,0)
+		SliderThumb.Position=UDim2.new(x,-7,0.5,-7)
+		circleRadius=math.floor(x*1490+10)
+		SliderLabel.Text="RAIO: "..circleRadius
+		Circle.Size=UDim2.new(0,circleRadius*2,0,circleRadius*2)
+		Circle.Position=UDim2.new(0.5,-circleRadius,0.5,-circleRadius)
 	end
 end)
 
@@ -475,8 +599,10 @@ UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInp
 UserInputService.InputChanged:Connect(function(i)
 	if draggingHB and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then
 		local x=math.clamp((i.Position.X-HBoxTrack.AbsolutePosition.X)/HBoxTrack.AbsoluteSize.X,0,1)
-		HBoxFill.Size=UDim2.new(x,0,1,0); HBoxThumb.Position=UDim2.new(x,-7,0.5,-7)
-		hitboxSize=math.floor(x*59+1); HBoxLabel.Text="HITBOX: "..hitboxSize.."x"
+		HBoxFill.Size=UDim2.new(x,0,1,0)
+		HBoxThumb.Position=UDim2.new(x,-7,0.5,-7)
+		hitboxSize=math.floor(x*59+1)
+		HBoxLabel.Text="HITBOX: "..hitboxSize.."x"
 	end
 end)
 
@@ -486,28 +612,38 @@ UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInp
 UserInputService.InputChanged:Connect(function(i)
 	if draggingFlySlider and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then
 		local x=math.clamp((i.Position.X-FlyTrack.AbsolutePosition.X)/FlyTrack.AbsoluteSize.X,0,1)
-		FlyFill.Size=UDim2.new(x,0,1,0); FlyThumb.Position=UDim2.new(x,-7,0.5,-7)
-		flySpeed=math.floor(x*180+40); FlySpeedLbl.Text=tostring(flySpeed)
+		FlyFill.Size=UDim2.new(x,0,1,0)
+		FlyThumb.Position=UDim2.new(x,-7,0.5,-7)
+		flySpeed=math.floor(x*180+40)
+		FlySpeedLbl.Text=tostring(flySpeed)
 	end
 end)
 
 local draggingPanel=false; local pDragStart,pStart=nil,nil
 TopBar.InputBegan:Connect(function(i)
 	if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
-		draggingPanel=true; pDragStart=i.Position; pStart=Panel.Position
+		draggingPanel=true
+		pDragStart=i.Position
+		pStart=Panel.Position
 	end
 end)
 UserInputService.InputChanged:Connect(function(i)
 	if draggingPanel and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then
-		local d=i.Position-pDragStart; Panel.Position=UDim2.new(pStart.X.Scale,pStart.X.Offset+d.X,pStart.Y.Scale,pStart.Y.Offset+d.Y)
+		local d=i.Position-pDragStart
+		Panel.Position=UDim2.new(pStart.X.Scale,pStart.X.Offset+d.X,pStart.Y.Scale,pStart.Y.Offset+d.Y)
 	end
 end)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then draggingPanel=false end end)
+UserInputService.InputEnded:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then draggingPanel=false end
+end)
 
 local draggingPopUp=false; local puDragStart,puStart=nil,nil; local puMoved=false
 PopUp.InputBegan:Connect(function(i)
 	if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
-		draggingPopUp=true; puMoved=false; puDragStart=i.Position; puStart=PopUp.Position
+		draggingPopUp=true
+		puMoved=false
+		puDragStart=i.Position
+		puStart=PopUp.Position
 	end
 end)
 UserInputService.InputChanged:Connect(function(i)
@@ -528,158 +664,223 @@ local function onCharAdded(p,char)
 	char:WaitForChild("HumanoidRootPart",5)
 	if espCache[p] then espCache[p]:Destroy(); espCache[p]=nil end
 	if espNameCache[p] then espNameCache[p]:Destroy(); espNameCache[p]=nil end
-	removeHBVisual(p); hitboxOriginals[p]=nil
+	removeHBVisual(p)
+	hitboxOriginals[p]=nil
 end
+
 for _,p in ipairs(Players:GetPlayers()) do
-	if p~=LocalPlayer then p.CharacterAdded:Connect(function(c) onCharAdded(p,c) end) end
+	if p ~= LocalPlayer then p.CharacterAdded:Connect(function(c) onCharAdded(p,c) end) end
 end
-Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function(c) onCharAdded(p,c) end) end)
+Players.PlayerAdded:Connect(function(p)
+	p.CharacterAdded:Connect(function(c) onCharAdded(p,c) end)
+	UpdatePlayerColor(p)
+end)
 Players.PlayerRemoving:Connect(function(p)
-	removeESP(p); removeHBVisual(p); hitboxOriginals[p]=nil
+	removeESP(p)
+	removeHBVisual(p)
+	hitboxOriginals[p]=nil
+	PlayerChatColors[p]=nil
 	if lockedPlayer==p then lockedPlayer=nil; LockFrame.Visible=false; resetCam() end
 end)
 
 RunService:BindToRenderStep("ZxAimFix",Enum.RenderPriority.Camera.Value+1,function()
 	if not aimFixOn then return end
-	local cam=workspace.CurrentCamera; if not cam then return end
-	local needsNew=lockedPlayer==nil or not lockedPlayer.Character or not lockedPlayer.Character:FindFirstChildOfClass("Humanoid") or lockedPlayer.Character:FindFirstChildOfClass("Humanoid").Health<=0
-	if needsNew then lockedPlayer=getClosest(cam); if lockedPlayer then Notify("FIXADO: "..lockedPlayer.Name) end end
+	local cam=workspace.CurrentCamera
+	if not cam then return end
+
+	local needsNew = not lockedPlayer or not lockedPlayer.Character or not lockedPlayer.Character:FindFirstChildOfClass("Humanoid") or lockedPlayer.Character:FindFirstChildOfClass("Humanoid").Health <= 0
+	if needsNew then
+		lockedPlayer = getClosest(cam)
+		if lockedPlayer then Notify("FIXADO: "..lockedPlayer.Name) end
+	end
+
 	if lockedPlayer then
-		local part=getTargetPart(lockedPlayer)
+		local part = getTargetPart(lockedPlayer)
 		if part and part.Parent then
-			cam.CFrame=CFrame.new(cam.CFrame.Position,part.Position)
-			local sp,on=cam:WorldToViewportPoint(part.Position)
+			cam.CFrame = CFrame.new(cam.CFrame.Position, part.Position)
+			local sp,on = cam:WorldToViewportPoint(part.Position)
 			if on then
-				Crosshair.Position=UDim2.new(0,sp.X-11,0,sp.Y-11)
-				LockFrame.Position=UDim2.new(0,sp.X,0,sp.Y); LockFrame.Visible=true
-			else LockFrame.Visible=false; Crosshair.Position=UDim2.new(0.5,-11,0.5,-11) end
-		else LockFrame.Visible=false; Crosshair.Position=UDim2.new(0.5,-11,0.5,-11) end
-	else LockFrame.Visible=false; Crosshair.Position=UDim2.new(0.5,-11,0.5,-11) end
+				Crosshair.Position = UDim2.new(0,sp.X-11,0,sp.Y-11)
+				LockFrame.Position = UDim2.new(0,sp.X,0,sp.Y)
+				LockFrame.Visible = true
+			else
+				LockFrame.Visible = false
+				Crosshair.Position = UDim2.new(0.5,-11,0.5,-11)
+			end
+		else
+			LockFrame.Visible = false
+			Crosshair.Position = UDim2.new(0.5,-11,0.5,-11)
+		end
+	else
+		LockFrame.Visible = false
+		Crosshair.Position = UDim2.new(0.5,-11,0.5,-11)
+	end
 end)
 
-local lastFlyAnimId=""
+local lastFlyAnimId = ""
 RunService.RenderStepped:Connect(function()
-	local t=tick(); PStroke.Color=RGB(t)
-	if flyOn then FlyPStroke.Color=RGB(t) end
+	local t = tick()
+	PStroke.Color = RGB(t)
+	if flyOn then FlyPStroke.Color = RGB(t) end
 
 	if aimOn and not aimFixOn then
-		local cam=workspace.CurrentCamera; if cam then
-			local closest=getClosest(cam)
+		local cam = workspace.CurrentCamera
+		if cam then
+			local closest = getClosest(cam)
 			if closest then
-				local part=getTargetPart(closest)
+				local part = getTargetPart(closest)
 				if part and part.Parent then
-					local sp,on=cam:WorldToViewportPoint(part.Position)
+					local sp,on = cam:WorldToViewportPoint(part.Position)
 					if on then
-						Crosshair.Position=UDim2.new(0,sp.X-11,0,sp.Y-11)
-						cam.CFrame=cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position,part.Position),0.2)
+						Crosshair.Position = UDim2.new(0,sp.X-11,0,sp.Y-11)
+						cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, part.Position), 0.2)
 					end
 				end
-			else Crosshair.Position=UDim2.new(0.5,-11,0.5,-11) end
-			if rgbCircleOn then CircleStroke.Color=RGB(t); CircleFill.BackgroundColor3=RGB(t)
-			else CircleStroke.Color=Color3.fromRGB(100,0,220); CircleFill.BackgroundColor3=Color3.fromRGB(80,0,200) end
+			else
+				Crosshair.Position = UDim2.new(0.5,-11,0.5,-11)
+			end
+
+			if rgbCircleOn then
+				CircleStroke.Color = RGB(t)
+				CircleFill.BackgroundColor3 = RGB(t)
+			else
+				CircleStroke.Color = Color3.fromRGB(100,0,220)
+				CircleFill.BackgroundColor3 = Color3.fromRGB(80,0,200)
+			end
 		end
 	elseif not aimFixOn then
-		Crosshair.Position=UDim2.new(0.5,-11,0.5,-11); LockFrame.Visible=false
+		Crosshair.Position = UDim2.new(0.5,-11,0.5,-11)
+		LockFrame.Visible = false
 	end
 
 	if LockFrame.Visible then
-		local pulse=0.1+math.abs(math.sin(t*4))*0.5
-		for _,c in ipairs(LockFrame:GetChildren()) do if c:IsA("Frame") and c~=LockDot then c.BackgroundTransparency=pulse end end
+		local pulse = 0.1 + math.abs(math.sin(t*4))*0.5
+		for _,c in ipairs(LockFrame:GetChildren()) do
+			if c:IsA("Frame") and c ~= LockDot then
+				c.BackgroundTransparency = pulse
+			end
+		end
 	end
 
 	if rgbNameOn and espOn then
-		local nc=RGB(t)
+		local nc = RGB(t)
 		for _,p in ipairs(Players:GetPlayers()) do
-			if p~=LocalPlayer and espNameCache[p] and espNameCache[p].Parent then
-				local lbl=espNameCache[p]:FindFirstChildOfClass("TextLabel"); if lbl then lbl.TextColor3=nc end
+			if p ~= LocalPlayer and espNameCache[p] and espNameCache[p].Parent then
+				local lbl = espNameCache[p]:FindFirstChildOfClass("TextLabel")
+				if lbl then lbl.TextColor3 = nc end
 			end
 		end
 	end
 
 	if flyOn and flyBV and flyBG then
-		local char=LocalPlayer.Character; if not char then return end
-		local root=char:FindFirstChild("HumanoidRootPart"); if not root then return end
-		local cam=workspace.CurrentCamera; if not cam then return end
-		local spd=fastFlyOn and flySpeed*2 or flySpeed
-		local dir=Vector3.zero; local moving=false
-		local camLook=cam.CFrame.LookVector; local camRight=cam.CFrame.RightVector
-		local fwd=Vector3.new(camLook.X,0,camLook.Z)
-		if fwd.Magnitude>0 then fwd=fwd.Unit end
-		local rgt=Vector3.new(camRight.X,0,camRight.Z)
-		if rgt.Magnitude>0 then rgt=rgt.Unit end
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir=dir+fwd; moving=true end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir=dir-fwd; moving=true end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir=dir+rgt; moving=true end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir=dir-rgt; moving=true end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir=dir+Vector3.new(0,1,0); moving=true end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir=dir+Vector3.new(0,-1,0); moving=true end
-		local hum=char:FindFirstChildOfClass("Humanoid")
-		if hum then
-			local md=hum.MoveDirection
-			if md.Magnitude>0.1 then dir=dir+Vector3.new(md.X,0,md.Z); moving=true end
-		end
-		if dir.Magnitude>0 then dir=dir.Unit end
-		flyBV.Velocity=dir*spd; flyBV.MaxForce=Vector3.new(spd*1000,spd*1000,spd*1000)
-		if dir.Magnitude>0 then flyBG.CFrame=CFrame.new(root.Position,root.Position+dir) end
-		if not fastFlyOn then
-			local wantId=moving and ANIM_MOVE or ANIM_IDLE
-			if wantId~=lastFlyAnimId then
-				lastFlyAnimId=wantId; task.spawn(function() playFlyAnim(wantId) end)
-			end
-		else
-			if lastFlyAnimId~=ANIM_FAST then lastFlyAnimId=ANIM_FAST; task.spawn(function() playFlyAnim(ANIM_FAST) end) end
+		local char = LocalPlayer.Character
+		if not char then return end
+		local root = char:FindFirstChild("HumanoidRootPart")
+		if not root then return end
+		local cam = workspace.CurrentCamera
+		if not cam then return end
+
+		local spd = fastFlyOn and flySpeed*2 or flySpeed
+		local dir = Vector3.zero
+		local camLook = cam.CFrame.LookVector
+		local camRight = cam.CFrame.RightVector
+		local fwd = Vector3.new(camLook.X,0,camLook.Z).Unit
+		local rgt = Vector3.new(camRight.X,0,camRight.Z).Unit
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += fwd end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= fwd end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += rgt end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= rgt end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
+
+		if dir.Magnitude > 0 then dir = dir.Unit end
+		flyBV.Velocity = dir * spd
+		flyBV.MaxForce = Vector3.new(1e5,1e5,1e5)
+
+		if dir.Magnitude > 0 then
+			flyBG.CFrame = CFrame.new(root.Position, root.Position + dir)
 		end
 	end
 end)
 
 RunService.Stepped:Connect(function()
 	if flyOn then
-		local char=LocalPlayer.Character; if not char then return end
-		for _,p in ipairs(char:GetDescendants()) do
-			if p:IsA("BasePart") and p.Name~="ViltFloor" then p.CanCollide=false end
+		local char = LocalPlayer.Character
+		if char then
+			for _,p in ipairs(char:GetDescendants()) do
+				if p:IsA("BasePart") and p.Name ~= "ViltFloor" then
+					p.CanCollide = false
+				end
+			end
 		end
 	end
 end)
 
 RunService.Heartbeat:Connect(function()
 	if hitboxOn then
-		local t=tick(); local bc=rgbHitboxOn and RGB(t) or Color3.fromRGB(120,0,255)
-		local ns=math.max(hitboxSize*4,1)
+		local t = tick()
+		local bc = rgbHitboxOn and RGB(t) or Color3.fromRGB(120,0,255)
+		local ns = math.max(hitboxSize*4, 1)
 		for _,p in ipairs(Players:GetPlayers()) do
-			if p~=LocalPlayer then
-				local char=p.Character
-				if char then
-					local root=char:FindFirstChild("HumanoidRootPart"); local hum=char:FindFirstChildOfClass("Humanoid")
-					if root and hum then
-						if not hitboxOriginals[p] then hitboxOriginals[p]=Vector3.new(root.Size.X,root.Size.Y,root.Size.Z) end
-						root.Size=Vector3.new(ns,ns,ns)
-						local sb=hitboxVisualCache[p]
-						if not sb or not sb.Parent or sb.Adornee~=root then
-							if sb then sb:Destroy() end
-							sb=Instance.new("SelectionBox"); sb.LineThickness=0.05; sb.SurfaceTransparency=1; sb.SurfaceColor3=Color3.new(0,0,0); sb.Adornee=root; sb.Parent=workspace; hitboxVisualCache[p]=sb
-						end
-						sb.Color3=bc
-					else local sb=hitboxVisualCache[p]; if sb then sb:Destroy(); hitboxVisualCache[p]=nil end end
-				else local sb=hitboxVisualCache[p]; if sb then sb:Destroy(); hitboxVisualCache[p]=nil end; hitboxOriginals[p]=nil end
+			if p == LocalPlayer then continue end
+			local char = p.Character
+			if char then
+				local root = char:FindFirstChild("HumanoidRootPart")
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				if root and hum then
+					if not hitboxOriginals[p] then
+						hitboxOriginals[p] = root.Size
+					end
+					root.Size = Vector3.new(ns,ns,ns)
+
+					local sb = hitboxVisualCache[p]
+					if not sb or not sb.Parent or sb.Adornee ~= root then
+						if sb then sb:Destroy() end
+						sb = Instance.new("SelectionBox")
+						sb.LineThickness = 0.05
+						sb.SurfaceTransparency = 1
+						sb.SurfaceColor3 = Color3.new(0,0,0)
+						sb.Adornee = root
+						sb.Parent = workspace
+						hitboxVisualCache[p] = sb
+					end
+					sb.Color3 = bc
+				end
 			end
 		end
-		for p,sb in pairs(hitboxVisualCache) do if not p.Character or p==LocalPlayer then if sb then sb:Destroy() end; hitboxVisualCache[p]=nil; hitboxOriginals[p]=nil end end
 	end
+
 	if not espOn then return end
-	local t=tick(); local ec=rgbEspOn and RGB(t) or Color3.fromRGB(110,0,220)
+	local t = tick()
+	local ec = rgbEspOn and RGB(t) or Color3.fromRGB(110,0,220)
 	for _,p in ipairs(Players:GetPlayers()) do
-		if p~=LocalPlayer then
-			local char=p.Character
-			if char then
-				local hum=char:FindFirstChildOfClass("Humanoid")
-				if hum and hum.Health>0 then
-					if not espCache[p] or not espCache[p].Parent then
-						if espCache[p] then espCache[p]:Destroy() end
-						local h=Instance.new("Highlight"); h.FillColor=ec; h.OutlineColor=Color3.fromRGB(190,130,255); h.FillTransparency=0.5; h.OutlineTransparency=0.08; h.Adornee=char; h.Parent=char; espCache[p]=h
-					else espCache[p].FillColor=ec end
-					if not espNameCache[p] or not espNameCache[p].Parent then createESPName(p) end
-				else removeESP(p) end
-			else removeESP(p) end
+		if p == LocalPlayer then continue end
+		local char = p.Character
+		if char then
+			local hum = char:FindFirstChildOfClass("Humanoid")
+			if hum and hum.Health > 0 then
+				if not espCache[p] or not espCache[p].Parent then
+					if espCache[p] then espCache[p]:Destroy() end
+					local h = Instance.new("Highlight")
+					h.FillColor = ec
+					h.OutlineColor = Color3.fromRGB(190,130,255)
+					h.FillTransparency = 0.5
+					h.OutlineTransparency = 0.08
+					h.Adornee = char
+					h.Parent = char
+					espCache[p] = h
+				else
+					espCache[p].FillColor = ec
+				end
+				if not espNameCache[p] or not espNameCache[p].Parent then
+					createESPName(p)
+				end
+			else
+				removeESP(p)
+			end
+		else
+			removeESP(p)
 		end
 	end
 end)
@@ -687,14 +888,29 @@ end)
 local smsgs={"[ CARREGANDO MÓDULOS ]","[ INICIANDO ESP ]","[ COMPILANDO MIRA ]","[ APLICANDO PATCHES ]","[ FINALIZANDO SISTEMA ]"}
 task.spawn(function()
 	for i=0,100 do
-		LBFill.Size=UDim2.new(i/100,0,1,0); LPct.Text=i.."%"; LCardStroke.Color=RGB(i*0.05); LSym.TextColor3=RGB(i*0.05)
-		LStat.Text=smsgs[math.clamp(math.floor(i/21)+1,1,#smsgs)]; task.wait(0.022)
+		LBFill.Size=UDim2.new(i/100,0,1,0)
+		LPct.Text=i.."%"
+		LCardStroke.Color=RGB(i*0.05)
+		LSym.TextColor3=RGB(i*0.05)
+		LStat.Text=smsgs[math.clamp(math.floor(i/21)+1,1,#smsgs)]
+		task.wait(0.022)
 	end
-	Tween(LoadBG,{BackgroundTransparency=1},0.5); Tween(LCard,{BackgroundTransparency=1},0.4)
-	Tween(LCardStroke,{Transparency=1},0.3); Tween(LTitle,{TextTransparency=1},0.3); Tween(LSub,{TextTransparency=1},0.3)
-	Tween(LPct,{TextTransparency=1},0.3); Tween(LStat,{TextTransparency=1},0.3); Tween(LSym,{TextTransparency=1},0.3)
-	Tween(LBFill,{BackgroundTransparency=1},0.3); Tween(LTopLine,{BackgroundTransparency=1},0.3); Tween(LBotLine,{BackgroundTransparency=1},0.3)
-	Tween(GTop,{BackgroundTransparency=1},0.4); Tween(GBot,{BackgroundTransparency=1},0.4)
-	task.wait(0.5); LoadBG:Destroy()
-	Panel.Visible=true; Tween(Panel,{Position=UDim2.new(0.5,-145,0.5,-240)},0.55); Notify("ZX CARREGADO!")
+	Tween(LoadBG,{BackgroundTransparency=1},0.5)
+	Tween(LCard,{BackgroundTransparency=1},0.4)
+	Tween(LCardStroke,{Transparency=1},0.3)
+	Tween(LTitle,{TextTransparency=1},0.3)
+	Tween(LSub,{TextTransparency=1},0.3)
+	Tween(LPct,{TextTransparency=1},0.3)
+	Tween(LStat,{TextTransparency=1},0.3)
+	Tween(LSym,{TextTransparency=1},0.3)
+	Tween(LBFill,{BackgroundTransparency=1},0.3)
+	Tween(LTopLine,{BackgroundTransparency=1},0.3)
+	Tween(LBotLine,{BackgroundTransparency=1},0.3)
+	Tween(GTop,{BackgroundTransparency=1},0.4)
+	Tween(GBot,{BackgroundTransparency=1},0.4)
+	task.wait(0.5)
+	LoadBG:Destroy()
+	Panel.Visible=true
+	Tween(Panel,{Position=UDim2.new(0.5,-145,0.5,-240)},0.55)
+	Notify("ZX CARREGADO!")
 end)
