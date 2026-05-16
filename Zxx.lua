@@ -260,22 +260,6 @@ CP(0,0,11,11,false); CP(1,0,11,11,true); CPB(0,1,11,11,false); CPB(1,1,11,11,tru
 local LockDot=New("Frame",{Size=UDim2.new(0,4,0,4),Position=UDim2.new(0.5,-2,0.5,-2),BackgroundColor3=Color3.fromRGB(0,210,255),BorderSizePixel=0,Parent=LockFrame})
 New("UICorner",{CornerRadius=UDim.new(0.5,0),Parent=LockDot})
 
-local FlyPanel=New("Frame",{Size=UDim2.new(0,230,0,118),Position=UDim2.new(0.5,-115,1,60),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,Visible=false,Parent=ScreenGui})
-New("UICorner",{CornerRadius=UDim.new(0,12),Parent=FlyPanel})
-local FlyPStroke=New("UIStroke",{Color=Color3.fromRGB(100,0,220),Thickness=1.4,Transparency=0.2,Parent=FlyPanel})
-New("TextLabel",{Size=UDim2.new(1,0,0,22),Position=UDim2.new(0,0,0,5),BackgroundTransparency=1,Text="⬡  VELOCIDADE DE VOO",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(180,120,255),TextSize=11,TextXAlignment=Enum.TextXAlignment.Center,Parent=FlyPanel})
-local FlySpeedLbl=New("TextLabel",{Size=UDim2.new(1,0,0,14),Position=UDim2.new(0,0,0,27),BackgroundTransparency=1,Text="60",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(120,80,180),TextSize=10,TextXAlignment=Enum.TextXAlignment.Center,Parent=FlyPanel})
-local FlyTrack=New("Frame",{Size=UDim2.new(0.82,0,0,4),Position=UDim2.new(0.09,0,0,48),BackgroundColor3=Color3.fromRGB(10,7,18),BorderSizePixel=0,Parent=FlyPanel})
-New("UICorner",{CornerRadius=UDim.new(0,2),Parent=FlyTrack})
-local FlyFill=New("Frame",{Size=UDim2.new(0.36,0,1,0),BackgroundColor3=Color3.fromRGB(100,0,220),BorderSizePixel=0,Parent=FlyTrack})
-New("UICorner",{CornerRadius=UDim.new(0,2),Parent=FlyFill})
-New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(80,0,180)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,200,255))}),Parent=FlyFill})
-local FlyThumb=New("Frame",{Size=UDim2.new(0,14,0,14),Position=UDim2.new(0.36,-7,0.5,-7),BackgroundColor3=Color3.fromRGB(160,80,255),BorderSizePixel=0,Parent=FlyTrack,Active=true})
-New("UICorner",{CornerRadius=UDim.new(0.5,0),Parent=FlyThumb})
-local BtnFastFly=New("TextButton",{Size=UDim2.new(0.82,0,0,30),Position=UDim2.new(0.09,0,0,62),BackgroundColor3=Color3.fromRGB(6,4,10),BorderSizePixel=0,Text="⬡  VOAR RÁPIDO: OFF",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,155,175),TextSize=12,TextXAlignment=Enum.TextXAlignment.Center,Parent=FlyPanel,Active=true})
-New("UICorner",{CornerRadius=UDim.new(0,7),Parent=BtnFastFly})
-New("UIStroke",{Color=Color3.fromRGB(35,25,52),Thickness=1.1,Parent=BtnFastFly})
-
 local PopUp=New("TextButton",{Size=UDim2.new(0,54,0,28),Position=UDim2.new(1,-70,0,60),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,Text="⬡ ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,80,255),TextSize=12,Visible=false,Parent=ScreenGui,Active=true})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=PopUp})
 New("UIStroke",{Color=Color3.fromRGB(100,0,220),Thickness=1.2,Parent=PopUp})
@@ -285,14 +269,9 @@ local espOn=false; local rgbEspOn=false; local rgbNameOn=false
 local hitboxOn=false; local hitboxSize=1
 local hitboxOriginals={}; local hitboxVisualCache={}; local rgbHitboxOn=false
 local ignoreTeam=false; local ignoreWall=false
-local flyOn=false; local fastFlyOn=false; local flySpeed=60
-local flyBV=nil; local flyBG=nil; local flyFloor=nil; local flyAnimTrack=nil
 local circleRadius=30; local lockedPlayer=nil
 local espCache={}; local espNameCache={}
 local partMap={["Cabeça"]="Head",["Peito"]="UpperTorso",["Pé"]="LeftFoot"}
-local ANIM_IDLE="rbxassetid://119723161204129"
-local ANIM_MOVE="rbxassetid://72572554208305"
-local ANIM_FAST="rbxassetid://123347895201748"
 
 local function SetBtn(btn,state)
 	btn.BackgroundColor3=state and Color3.fromRGB(22,0,44) or Color3.fromRGB(6,4,10)
@@ -332,25 +311,17 @@ end
 local function getClosest(cam)
 	local best, bd = nil, math.huge
 	local center = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
-
 	for _,player in ipairs(Players:GetPlayers()) do
 		if player == LocalPlayer then continue end
-
 		local char = GetCharacterFromWorkspace(player)
 		if not char then continue end
-
 		local hum = char:FindFirstChildOfClass("Humanoid")
 		local root = char:FindFirstChild("HumanoidRootPart")
 		if not (hum and hum.Health > 0 and root) then continue end
-
 		if ignoreTeam then
-			if IsSameTeam(player) then
-				continue
-			end
+			if IsSameTeam(player) then continue end
 		end
-
 		if ignoreWall and not isVisible(root) then continue end
-
 		local sp, onScreen = cam:WorldToViewportPoint(root.Position)
 		if onScreen then
 			local dist = (Vector2.new(sp.X, sp.Y) - center).Magnitude
@@ -366,73 +337,6 @@ end
 local function resetCam()
 	local cam=workspace.CurrentCamera
 	if cam then cam.CameraType=Enum.CameraType.Custom end
-end
-
-local function playFlyAnim(id)
-	local char=LocalPlayer.Character
-	if not char then return end
-	local hum=char:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
-	local animator=hum:FindFirstChildOfClass("Animator")
-	if not animator then return end
-
-	if flyAnimTrack and flyAnimTrack.IsPlaying then flyAnimTrack:Stop(0.15) end
-	local anim=Instance.new("Animation")
-	anim.AnimationId=id
-	local ok,track=pcall(function() return animator:LoadAnimation(anim) end)
-	anim:Destroy()
-	if ok and track then
-		track.Priority=Enum.AnimationPriority.Action4
-		track.Looped=true
-		track:Play(0.15)
-		flyAnimTrack=track
-	end
-end
-
-local function stopFlyAnim()
-	if flyAnimTrack then
-		if flyAnimTrack.IsPlaying then flyAnimTrack:Stop(0.2) end
-		flyAnimTrack=nil
-	end
-end
-
-local function activateFly()
-	local char=LocalPlayer.Character
-	if not char then return end
-	local root=char:FindFirstChild("HumanoidRootPart")
-	if not root then return end
-	local hum=char:FindFirstChildOfClass("Humanoid")
-	if not hum then return end
-
-	hum.PlatformStand=true
-	flyBV=Instance.new("BodyVelocity"); flyBV.Velocity=Vector3.zero; flyBV.MaxForce=Vector3.new(1e5,1e5,1e5); flyBV.P=1e4; flyBV.Parent=root
-	flyBG=Instance.new("BodyGyro"); flyBG.MaxTorque=Vector3.new(0,4e5,0); flyBG.P=1e4; flyBG.CFrame=root.CFrame; flyBG.Parent=root
-	flyFloor=Instance.new("Part"); flyFloor.Size=Vector3.new(3,0.2,3); flyFloor.Anchored=false; flyFloor.CanCollide=true; flyFloor.Transparency=1; flyFloor.CastShadow=false; flyFloor.Name="ViltFloor"; flyFloor.Parent=workspace
-	local weld=Instance.new("WeldConstraint"); weld.Part0=flyFloor; weld.Part1=root; weld.Parent=flyFloor
-
-	task.spawn(function() task.wait(0.1); playFlyAnim(ANIM_IDLE) end)
-	FlyPanel.Visible=true
-	Tween(FlyPanel,{Position=UDim2.new(0.5,-115,1,-128)},0.4)
-end
-
-local function deactivateFly()
-	local char=LocalPlayer.Character
-	if char then
-		local hum=char:FindFirstChildOfClass("Humanoid")
-		if hum then hum.PlatformStand=false end
-		for _,p in ipairs(char:GetDescendants()) do
-			if p:IsA("BasePart") then p.CanCollide=true end
-		end
-	end
-	if flyBV then flyBV:Destroy(); flyBV=nil end
-	if flyBG then flyBG:Destroy(); flyBG=nil end
-	if flyFloor then flyFloor:Destroy(); flyFloor=nil end
-	stopFlyAnim()
-	fastFlyOn=false
-	BtnFastFly.Text="⬡  VOAR RÁPIDO: OFF"; SetBtn(BtnFastFly,false)
-	Tween(FlyPanel,{Position=UDim2.new(0.5,-115,1,60)},0.35)
-	task.wait(0.36); FlyPanel.Visible=false
-	resetCam()
 end
 
 local function removeESPName(p)
@@ -545,23 +449,6 @@ BtnRGBName.MouseButton1Click:Connect(function()
 	Notify("ESP NOME RGB "..(rgbNameOn and "ATIVADO" or "DESATIVADO"))
 end)
 
-BtnFly.MouseButton1Click:Connect(function()
-	flyOn=not flyOn
-	BtnFly.Text="⬡  VILTRUMITA FLY: "..(flyOn and "ON" or "OFF")
-	SetBtn(BtnFly,flyOn)
-	if flyOn then task.spawn(activateFly); Notify("VILTRUMITA FLY ATIVADO")
-	else task.spawn(deactivateFly); Notify("VILTRUMITA FLY DESATIVADO") end
-end)
-
-BtnFastFly.MouseButton1Click:Connect(function()
-	if not flyOn then return end
-	fastFlyOn=not fastFlyOn
-	BtnFastFly.Text="⬡  VOAR RÁPIDO: "..(fastFlyOn and "ON" or "OFF")
-	SetBtn(BtnFastFly,fastFlyOn)
-	task.spawn(function() playFlyAnim(fastFlyOn and ANIM_FAST or ANIM_IDLE) end)
-	Notify("VOAR RÁPIDO "..(fastFlyOn and "ON" or "OFF"))
-end)
-
 HBoxToggle.MouseButton1Click:Connect(function()
 	hitboxOn=not hitboxOn
 	SetToggle(HBoxToggle,HBoxDot,hitboxOn)
@@ -659,19 +546,6 @@ UserInputService.InputChanged:Connect(function(i)
 	end
 end)
 
-local draggingFlySlider=false
-FlyThumb.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then draggingFlySlider=true end end)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then draggingFlySlider=false end end)
-UserInputService.InputChanged:Connect(function(i)
-	if draggingFlySlider and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then
-		local x=math.clamp((i.Position.X-FlyTrack.AbsolutePosition.X)/FlyTrack.AbsoluteSize.X,0,1)
-		FlyFill.Size=UDim2.new(x,0,1,0)
-		FlyThumb.Position=UDim2.new(x,-7,0.5,-7)
-		flySpeed=math.floor(x*180+40)
-		FlySpeedLbl.Text=tostring(flySpeed)
-	end
-end)
-
 local draggingPanel=false; local pDragStart,pStart=nil,nil
 TopBar.InputBegan:Connect(function(i)
 	if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
@@ -738,13 +612,11 @@ RunService:BindToRenderStep("ZxAimFix",Enum.RenderPriority.Camera.Value+1,functi
 	if not aimFixOn then return end
 	local cam=workspace.CurrentCamera
 	if not cam then return end
-
 	local needsNew = not lockedPlayer or not GetCharacterFromWorkspace(lockedPlayer) or not GetCharacterFromWorkspace(lockedPlayer):FindFirstChildOfClass("Humanoid") or GetCharacterFromWorkspace(lockedPlayer):FindFirstChildOfClass("Humanoid").Health <= 0
 	if needsNew then
 		lockedPlayer = getClosest(cam)
 		if lockedPlayer then Notify("FIXADO: "..lockedPlayer.Name) end
 	end
-
 	if lockedPlayer then
 		local part = getTargetPart(lockedPlayer)
 		if part and part.Parent then
@@ -768,11 +640,9 @@ RunService:BindToRenderStep("ZxAimFix",Enum.RenderPriority.Camera.Value+1,functi
 	end
 end)
 
-local lastFlyAnimId = ""
 RunService.RenderStepped:Connect(function()
 	local t = tick()
 	PStroke.Color = RGB(t)
-	if flyOn then FlyPStroke.Color = RGB(t) end
 
 	if aimOn and not aimFixOn then
 		local cam = workspace.CurrentCamera
@@ -790,7 +660,6 @@ RunService.RenderStepped:Connect(function()
 			else
 				Crosshair.Position = UDim2.new(0.5,-11,0.5,-11)
 			end
-
 			if rgbCircleOn then
 				CircleStroke.Color = RGB(t)
 				CircleFill.BackgroundColor3 = RGB(t)
@@ -822,50 +691,6 @@ RunService.RenderStepped:Connect(function()
 			end
 		end
 	end
-
-	if flyOn and flyBV and flyBG then
-		local char = LocalPlayer.Character
-		if not char then return end
-		local root = char:FindFirstChild("HumanoidRootPart")
-		if not root then return end
-		local cam = workspace.CurrentCamera
-		if not cam then return end
-
-		local spd = fastFlyOn and flySpeed*2 or flySpeed
-		local dir = Vector3.zero
-		local camLook = cam.CFrame.LookVector
-		local camRight = cam.CFrame.RightVector
-		local fwd = Vector3.new(camLook.X,0,camLook.Z).Unit
-		local rgt = Vector3.new(camRight.X,0,camRight.Z).Unit
-
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir += fwd end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir -= fwd end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir += rgt end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir -= rgt end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0,1,0) end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0,1,0) end
-
-		if dir.Magnitude > 0 then dir = dir.Unit end
-		flyBV.Velocity = dir * spd
-		flyBV.MaxForce = Vector3.new(1e5,1e5,1e5)
-
-		if dir.Magnitude > 0 then
-			flyBG.CFrame = CFrame.new(root.Position, root.Position + dir)
-		end
-	end
-end)
-
-RunService.Stepped:Connect(function()
-	if flyOn then
-		local char = LocalPlayer.Character
-		if char then
-			for _,p in ipairs(char:GetDescendants()) do
-				if p:IsA("BasePart") and p.Name ~= "ViltFloor" then
-					p.CanCollide = false
-				end
-			end
-		end
-	end
 end)
 
 RunService.Heartbeat:Connect(function()
@@ -884,7 +709,6 @@ RunService.Heartbeat:Connect(function()
 						hitboxOriginals[p] = root.Size
 					end
 					root.Size = Vector3.new(ns,ns,ns)
-
 					local sb = hitboxVisualCache[p]
 					if not sb or not sb.Parent or sb.Adornee ~= root then
 						if sb then sb:Destroy() end
