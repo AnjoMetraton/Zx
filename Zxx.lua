@@ -23,15 +23,11 @@ local function ColorDistance(c1, c2)
 	return dr*dr + dg*dg + db*db
 end
 
-local ChatColorCache = {}
-
 local function GetChatTeamColor(player)
-	if ChatColorCache[player] then return ChatColorCache[player] end
 	local ok, result = pcall(function()
-		if player.TeamColor then return player.TeamColor.Color end
+		if player.Team then return player.Team.TeamColor.Color end
 		return nil
 	end)
-	if ok and result then ChatColorCache[player] = result end
 	return (ok and result) or nil
 end
 
@@ -52,10 +48,13 @@ end
 local function IsSameTeam(playerA, playerB)
 	local cA = GetChatTeamColor(playerA)
 	local cB = GetChatTeamColor(playerB)
-	if cA and cB and ColorDistance(cA, cB) < 0.08 then return true end
+	if cA and cB then
+		if ColorDistance(cA, cB) < 0.05 then return true end
+		return false
+	end
 	local tA = GetCharacterTeamColor(playerA.Character)
 	local tB = GetCharacterTeamColor(playerB.Character)
-	if tA and tB and ColorDistance(tA, tB) < 0.08 then return true end
+	if tA and tB and ColorDistance(tA, tB) < 0.05 then return true end
 	return false
 end
 
@@ -672,11 +671,9 @@ for _,p in ipairs(Players:GetPlayers()) do
 	if p ~= LocalPlayer then p.CharacterAdded:Connect(function(c) onCharAdded(p,c) end) end
 end
 Players.PlayerAdded:Connect(function(p)
-	ChatColorCache[p]=nil
 	p.CharacterAdded:Connect(function(c) onCharAdded(p,c) end)
 end)
 Players.PlayerRemoving:Connect(function(p)
-	ChatColorCache[p]=nil
 	removeESP(p)
 	removeHBVisual(p)
 	hitboxOriginals[p]=nil
