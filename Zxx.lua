@@ -23,38 +23,58 @@ local function ColorDistance(c1, c2)
 	return dr*dr + dg*dg + db*db
 end
 
-local function GetChatTeamColor(player)
-	local ok, result = pcall(function()
-		if player.Team then return player.Team.TeamColor.Color end
-		return nil
-	end)
-	return (ok and result) or nil
+local TEAM_RED = Color3.fromRGB(229, 72, 72)
+local TEAM_BLUE = Color3.fromRGB(72, 171, 229)
+local TEAM_THRESHOLD = 0.15
+
+local function GetCharacterFromWorkspace(player)
+	local playersFolder = workspace:FindFirstChild("Players")
+	if playersFolder then
+		return playersFolder:FindFirstChild(player.Name)
+	end
+	return player.Character
 end
 
-local function GetCharacterTeamColor(char)
+local function GetTeamColorFromNametag(char)
 	if not char then return nil end
-	local bc = char:FindFirstChildOfClass("BodyColors")
-	if bc then return bc.TorsoColor3 end
-	local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
-	if torso and torso:IsA("BasePart") then return torso.Color end
-	for _,p in ipairs(char:GetChildren()) do
-		if p:IsA("BasePart") and (p.Name == "UpperTorso" or p.Name == "Torso") then
-			return p.Color
-		end
+	local nametag = char:FindFirstChild("Nametag")
+	if not nametag then return nil end
+	local label = nametag:FindFirstChild("Player")
+	if not label then return nil end
+	if label:IsA("TextLabel") then
+		return label.TextColor3
+	end
+	if label:IsA("ImageLabel") then
+		return label.ImageColor3
+	end
+	if label:IsA("Frame") then
+		return label.BackgroundColor3
 	end
 	return nil
 end
 
+local function ClassifyTeam(color)
+	if not color then return nil end
+	if ColorDistance(color, TEAM_RED) < TEAM_THRESHOLD then return "red" end
+	if ColorDistance(color, TEAM_BLUE) < TEAM_THRESHOLD then return "blue" end
+	return nil
+end
+
 local function IsSameTeam(playerA, playerB)
-	local cA = GetChatTeamColor(playerA)
-	local cB = GetChatTeamColor(playerB)
-	if cA and cB then
-		if ColorDistance(cA, cB) < 0.05 then return true end
+	local charA = GetCharacterFromWorkspace(playerA)
+	local charB = GetCharacterFromWorkspace(playerB)
+
+	local nA = GetTeamColorFromNametag(charA)
+	local nB = GetTeamColorFromNametag(charB)
+
+	if nA and nB then
+		local tA = ClassifyTeam(nA)
+		local tB = ClassifyTeam(nB)
+		if tA and tB then return tA == tB end
+		if ColorDistance(nA, nB) < TEAM_THRESHOLD then return true end
 		return false
 	end
-	local tA = GetCharacterTeamColor(playerA.Character)
-	local tB = GetCharacterTeamColor(playerB.Character)
-	if tA and tB and ColorDistance(tA, tB) < 0.05 then return true end
+
 	return false
 end
 
@@ -287,8 +307,10 @@ local function SetToggle(tog,dot,state)
 end
 
 local function getTargetPart(player)
-	if not player or not player.Character then return nil end
-	return player.Character:FindFirstChild(partMap[aimPart] or "Head") or player.Character:FindFirstChild("HumanoidRootPart")
+	if not player then return nil end
+	local char = GetCharacterFromWorkspace(player)
+	if not char then return nil end
+	return char:FindFirstChild(partMap[aimPart] or "Head") or char:FindFirstChild("HumanoidRootPart")
 end
 
 local function isVisible(root)
@@ -309,10 +331,13 @@ local function getClosest(cam)
 	local center = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
 
 	for _,player in ipairs(Players:GetPlayers()) do
-		if player == LocalPlayer or not player.Character then continue end
+		if player == LocalPlayer then continue end
 
-		local hum = player.Character:FindFirstChildOfClass("Humanoid")
-		local root = player.Character:FindFirstChild("HumanoidRootPart")
+		local char = GetCharacterFromWorkspace(player)
+		if not char then continue end
+
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		local root = char:FindFirstChild("HumanoidRootPart")
 		if not (hum and hum.Health > 0 and root) then continue end
 
 		if ignoreTeam then
@@ -414,8 +439,9 @@ local function removeESPName(p)
 	end
 end
 local function createESPName(p)
-	if not p.Character then return end
-	local root=p.Character:FindFirstChild("HumanoidRootPart")
+	local char = GetCharacterFromWorkspace(p)
+	if not char then return end
+	local root=char:FindFirstChild("HumanoidRootPart")
 	if not root then return end
 	removeESPName(p)
 	local bb=Instance.new("BillboardGui")
@@ -443,9 +469,12 @@ local function removeHBVisual(p)
 end
 local function restoreHitboxes()
 	for p,sz in pairs(hitboxOriginals) do
-		if p ~= LocalPlayer and p.Character then
-			local r=p.Character:FindFirstChild("HumanoidRootPart")
-			if r and sz then r.Size=sz end
+		if p ~= LocalPlayer then
+			local char = GetCharacterFromWorkspace(p)
+			if char then
+				local r=char:FindFirstChild("HumanoidRootPart")
+				if r and sz then r.Size=sz end
+			end
 		end
 		removeHBVisual(p)
 	end
@@ -685,7 +714,7 @@ RunService:BindToRenderStep("ZxAimFix",Enum.RenderPriority.Camera.Value+1,functi
 	local cam=workspace.CurrentCamera
 	if not cam then return end
 
-	local needsNew = not lockedPlayer or not lockedPlayer.Character or not lockedPlayer.Character:FindFirstChildOfClass("Humanoid") or lockedPlayer.Character:FindFirstChildOfClass("Humanoid").Health <= 0
+	local needsNew = not lockedPlayer or not GetCharacterFromWorkspace(lockedPlayer) or not GetCharacterFromWorkspace(lockedPlayer):FindFirstChildOfClass("Humanoid") or GetCharacterFromWorkspace(lockedPlayer):FindFirstChildOfClass("Humanoid").Health <= 0
 	if needsNew then
 		lockedPlayer = getClosest(cam)
 		if lockedPlayer then Notify("FIXADO: "..lockedPlayer.Name) end
@@ -821,7 +850,7 @@ RunService.Heartbeat:Connect(function()
 		local ns = math.max(hitboxSize*4, 1)
 		for _,p in ipairs(Players:GetPlayers()) do
 			if p == LocalPlayer then continue end
-			local char = p.Character
+			local char = GetCharacterFromWorkspace(p)
 			if char then
 				local root = char:FindFirstChild("HumanoidRootPart")
 				local hum = char:FindFirstChildOfClass("Humanoid")
@@ -853,7 +882,7 @@ RunService.Heartbeat:Connect(function()
 	local ec = rgbEspOn and RGB(t) or Color3.fromRGB(110,0,220)
 	for _,p in ipairs(Players:GetPlayers()) do
 		if p == LocalPlayer then continue end
-		local char = p.Character
+		local char = GetCharacterFromWorkspace(p)
 		if char then
 			local hum = char:FindFirstChildOfClass("Humanoid")
 			if hum and hum.Health > 0 then
