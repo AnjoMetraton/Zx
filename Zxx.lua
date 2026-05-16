@@ -16,29 +16,6 @@ end
 local function New(c,p) local o=Instance.new(c) for k,v in pairs(p or {}) do o[k]=v end return o end
 local function Tween(o,p,d) TweenService:Create(o,TweenInfo.new(d or 0.3,Enum.EasingStyle.Quint,Enum.EasingDirection.Out),p):Play() end
 
-local function GetNameColor(username)
-	local colors = {
-		Color3.fromRGB(253,41,67), Color3.fromRGB(1,162,255), Color3.fromRGB(2,184,87),
-		Color3.fromRGB(180,0,255), Color3.fromRGB(255,102,0), Color3.fromRGB(255,255,0),
-		Color3.fromRGB(0,255,255), Color3.fromRGB(255,0,255)
-	}
-	local value = 0
-	for i = 1, #username do
-		local v = string.byte(username, i)
-		if (#username - i) % 4 >= 2 then v = -v end
-		value += v
-	end
-	return colors[(value % #colors) + 1]
-end
-
-local MyChatColor = GetNameColor(LocalPlayer.Name)
-local PlayerChatColors = {}
-
-local function UpdatePlayerColor(player)
-	if player == LocalPlayer then return end
-	PlayerChatColors[player] = GetNameColor(player.Name)
-end
-
 local function ColorDistance(c1, c2)
 	local dr = c1.R - c2.R
 	local dg = c1.G - c2.G
@@ -46,13 +23,41 @@ local function ColorDistance(c1, c2)
 	return dr*dr + dg*dg + db*db
 end
 
-for _,p in ipairs(Players:GetPlayers()) do
-	UpdatePlayerColor(p)
+local ChatColorCache = {}
+
+local function GetChatTeamColor(player)
+	if ChatColorCache[player] then return ChatColorCache[player] end
+	local ok, result = pcall(function()
+		if player.TeamColor then return player.TeamColor.Color end
+		return nil
+	end)
+	if ok and result then ChatColorCache[player] = result end
+	return (ok and result) or nil
 end
-Players.PlayerAdded:Connect(UpdatePlayerColor)
-Players.PlayerRemoving:Connect(function(p)
-	PlayerChatColors[p] = nil
-end)
+
+local function GetCharacterTeamColor(char)
+	if not char then return nil end
+	local bc = char:FindFirstChildOfClass("BodyColors")
+	if bc then return bc.TorsoColor3 end
+	local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+	if torso and torso:IsA("BasePart") then return torso.Color end
+	for _,p in ipairs(char:GetChildren()) do
+		if p:IsA("BasePart") and (p.Name == "UpperTorso" or p.Name == "Torso") then
+			return p.Color
+		end
+	end
+	return nil
+end
+
+local function IsSameTeam(playerA, playerB)
+	local cA = GetChatTeamColor(playerA)
+	local cB = GetChatTeamColor(playerB)
+	if cA and cB and ColorDistance(cA, cB) < 0.08 then return true end
+	local tA = GetCharacterTeamColor(playerA.Character)
+	local tB = GetCharacterTeamColor(playerB.Character)
+	if tA and tB and ColorDistance(tA, tB) < 0.08 then return true end
+	return false
+end
 
 local ScreenGui = New("ScreenGui",{Name="ZxMenu",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LocalPlayer:WaitForChild("PlayerGui")})
 
@@ -311,13 +316,8 @@ local function getClosest(cam)
 		local root = player.Character:FindFirstChild("HumanoidRootPart")
 		if not (hum and hum.Health > 0 and root) then continue end
 
-		if ignoreTeam and LocalPlayer.Team and player.Team == LocalPlayer.Team then
-			continue
-		end
-
 		if ignoreTeam then
-			local targetColor = PlayerChatColors[player]
-			if targetColor and ColorDistance(MyChatColor, targetColor) < 0.065 then
+			if IsSameTeam(LocalPlayer, player) then
 				continue
 			end
 		end
@@ -672,14 +672,14 @@ for _,p in ipairs(Players:GetPlayers()) do
 	if p ~= LocalPlayer then p.CharacterAdded:Connect(function(c) onCharAdded(p,c) end) end
 end
 Players.PlayerAdded:Connect(function(p)
+	ChatColorCache[p]=nil
 	p.CharacterAdded:Connect(function(c) onCharAdded(p,c) end)
-	UpdatePlayerColor(p)
 end)
 Players.PlayerRemoving:Connect(function(p)
+	ChatColorCache[p]=nil
 	removeESP(p)
 	removeHBVisual(p)
 	hitboxOriginals[p]=nil
-	PlayerChatColors[p]=nil
 	if lockedPlayer==p then lockedPlayer=nil; LockFrame.Visible=false; resetCam() end
 end)
 
