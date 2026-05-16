@@ -60,22 +60,16 @@ local function ClassifyTeam(color)
 	return nil
 end
 
-local function IsSameTeam(playerA, playerB)
-	local charA = GetCharacterFromWorkspace(playerA)
+local mySelectedTeam = nil
+
+local function IsSameTeam(playerB)
+	if not mySelectedTeam then return false end
 	local charB = GetCharacterFromWorkspace(playerB)
-
-	local nA = GetTeamColorFromNametag(charA)
 	local nB = GetTeamColorFromNametag(charB)
-
-	if nA and nB then
-		local tA = ClassifyTeam(nA)
-		local tB = ClassifyTeam(nB)
-		if tA and tB then return tA == tB end
-		if ColorDistance(nA, nB) < TEAM_THRESHOLD then return true end
-		return false
-	end
-
-	return false
+	if not nB then return false end
+	local teamB = ClassifyTeam(nB)
+	if not teamB then return false end
+	return mySelectedTeam == teamB
 end
 
 local ScreenGui = New("ScreenGui",{Name="ZxMenu",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LocalPlayer:WaitForChild("PlayerGui")})
@@ -135,7 +129,7 @@ New("UICorner",{CornerRadius=UDim.new(0,6),Parent=CloseBtn})
 New("UIStroke",{Color=Color3.fromRGB(80,0,160),Thickness=1,Parent=CloseBtn})
 New("Frame",{Size=UDim2.new(1,0,0,1),Position=UDim2.new(0,0,1,0),BackgroundColor3=Color3.fromRGB(80,0,180),BackgroundTransparency=0.5,BorderSizePixel=0,ZIndex=3,Parent=TopBar})
 
-local ScrollFrame=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-50),Position=UDim2.new(0,0,0,50),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=Color3.fromRGB(100,0,220),ScrollBarImageTransparency=0.4,CanvasSize=UDim2.new(0,0,0,1100),ScrollingDirection=Enum.ScrollingDirection.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Panel})
+local ScrollFrame=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-50),Position=UDim2.new(0,0,0,50),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=3,ScrollBarImageColor3=Color3.fromRGB(100,0,220),ScrollBarImageTransparency=0.4,CanvasSize=UDim2.new(0,0,0,1200),ScrollingDirection=Enum.ScrollingDirection.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Parent=Panel})
 
 local function MakeBtn(txt,y,active)
 	local b=New("TextButton",{Size=UDim2.new(0.86,0,0,40),Position=UDim2.new(0.07,0,0,y),BackgroundColor3=active and Color3.fromRGB(22,0,44) or Color3.fromRGB(6,4,10),BorderSizePixel=0,Text=txt,Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175),TextSize=13,TextXAlignment=Enum.TextXAlignment.Center,Parent=ScrollFrame,Active=true})
@@ -150,9 +144,8 @@ local BtnCircle=MakeBtn("⬡  RGB CÍRCULO: OFF",110,false)
 local BtnESP=MakeBtn("⬡  ESP: OFF",160,false)
 local BtnRGBESP=MakeBtn("⬡  RGB ESP: OFF",210,false)
 local BtnRGBName=MakeBtn("⬡  ESP NOME RGB: OFF",260,false)
-local BtnFly=MakeBtn("⬡  VILTRUMITA FLY: OFF",310,false)
 
-local SliderOuter=New("Frame",{Size=UDim2.new(0.86,0,0,44),Position=UDim2.new(0.07,0,0,370),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,Parent=ScrollFrame,Active=true})
+local SliderOuter=New("Frame",{Size=UDim2.new(0.86,0,0,44),Position=UDim2.new(0.07,0,0,320),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,Parent=ScrollFrame,Active=true})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=SliderOuter})
 New("UIStroke",{Color=Color3.fromRGB(35,25,52),Thickness=1,Parent=SliderOuter})
 local SliderLabel=New("TextLabel",{Size=UDim2.new(1,-10,0,16),Position=UDim2.new(0,8,0,5),BackgroundTransparency=1,Text="RAIO: 30",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(120,80,200),TextSize=11,TextXAlignment=Enum.TextXAlignment.Left,Parent=SliderOuter})
@@ -236,6 +229,16 @@ local function MakeRow(lbl,y)
 end
 local TeamToggle,TeamDot=MakeRow("IGNORAR PRÓPRIO TIME",714)
 local WallToggle,WallDot=MakeRow("IGNORAR ATRAVÉS DA PAREDE",756)
+
+New("TextLabel",{Size=UDim2.new(0.86,0,0,18),Position=UDim2.new(0.07,0,0,798),BackgroundTransparency=1,Text="── MEU TIME ──",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(70,50,110),TextSize=10,TextXAlignment=Enum.TextXAlignment.Center,Parent=ScrollFrame})
+
+local TeamBtnRed=New("TextButton",{Size=UDim2.new(0.41,0,0,36),Position=UDim2.new(0.07,0,0,824),BackgroundColor3=Color3.fromRGB(40,5,5),BorderSizePixel=0,Text="● TIME VERMELHO",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(229,72,72),TextSize=11,TextXAlignment=Enum.TextXAlignment.Center,Parent=ScrollFrame,Active=true})
+New("UICorner",{CornerRadius=UDim.new(0,8),Parent=TeamBtnRed})
+local TeamBtnRedStroke=New("UIStroke",{Color=Color3.fromRGB(100,20,20),Thickness=1.5,Parent=TeamBtnRed})
+
+local TeamBtnBlue=New("TextButton",{Size=UDim2.new(0.41,0,0,36),Position=UDim2.new(0.52,0,0,824),BackgroundColor3=Color3.fromRGB(5,15,40),BorderSizePixel=0,Text="● TIME AZUL",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(72,171,229),TextSize=11,TextXAlignment=Enum.TextXAlignment.Center,Parent=ScrollFrame,Active=true})
+New("UICorner",{CornerRadius=UDim.new(0,8),Parent=TeamBtnBlue})
+local TeamBtnBlueStroke=New("UIStroke",{Color=Color3.fromRGB(20,60,100),Thickness=1.5,Parent=TeamBtnBlue})
 
 local Circle=New("Frame",{Size=UDim2.new(0,60,0,60),Position=UDim2.new(0.5,-30,0.5,-30),BackgroundTransparency=1,BorderSizePixel=0,Visible=false,Parent=ScreenGui})
 New("UICorner",{CornerRadius=UDim.new(0.5,0),Parent=Circle})
@@ -341,7 +344,7 @@ local function getClosest(cam)
 		if not (hum and hum.Health > 0 and root) then continue end
 
 		if ignoreTeam then
-			if IsSameTeam(LocalPlayer, player) then
+			if IsSameTeam(player) then
 				continue
 			end
 		end
@@ -577,6 +580,28 @@ TeamToggle.MouseButton1Click:Connect(function()
 	SetToggle(TeamToggle,TeamDot,ignoreTeam)
 	if not ignoreTeam and aimFixOn then lockedPlayer=nil end
 	Notify("IGNORAR TIME "..(ignoreTeam and "ON" or "OFF"))
+end)
+
+TeamBtnRed.MouseButton1Click:Connect(function()
+	mySelectedTeam="red"
+	TeamBtnRedStroke.Color=Color3.fromRGB(229,72,72)
+	TeamBtnRedStroke.Thickness=2.5
+	TeamBtnBlueStroke.Color=Color3.fromRGB(20,60,100)
+	TeamBtnBlueStroke.Thickness=1.5
+	TeamBtnRed.BackgroundColor3=Color3.fromRGB(60,8,8)
+	TeamBtnBlue.BackgroundColor3=Color3.fromRGB(5,15,40)
+	Notify("TIME: VERMELHO SELECIONADO")
+end)
+
+TeamBtnBlue.MouseButton1Click:Connect(function()
+	mySelectedTeam="blue"
+	TeamBtnBlueStroke.Color=Color3.fromRGB(72,171,229)
+	TeamBtnBlueStroke.Thickness=2.5
+	TeamBtnRedStroke.Color=Color3.fromRGB(100,20,20)
+	TeamBtnRedStroke.Thickness=1.5
+	TeamBtnBlue.BackgroundColor3=Color3.fromRGB(8,25,60)
+	TeamBtnRed.BackgroundColor3=Color3.fromRGB(40,5,5)
+	Notify("TIME: AZUL SELECIONADO")
 end)
 
 WallToggle.MouseButton1Click:Connect(function()
