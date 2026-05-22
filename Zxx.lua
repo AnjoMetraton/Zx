@@ -130,20 +130,23 @@ local function MakeBtn(txt,y,active)
 	local b=New("TextButton",{Size=UDim2.new(0.88,0,0,42),Position=UDim2.new(0.06,0,0,y),BackgroundColor3=active and Color3.fromRGB(22,0,44) or Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="",Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175),TextSize=13,TextXAlignment=Enum.TextXAlignment.Center,Parent=ScrollFrame,Active=true})
 	New("UICorner",{CornerRadius=UDim.new(0,10),Parent=b})
 	New("UIStroke",{Color=active and Color3.fromRGB(100,0,220) or Color3.fromRGB(30,20,50),Thickness=1.2,Parent=b})
-	New("TextLabel",{Name="IconLbl",Size=UDim2.new(0,26,1,0),Position=UDim2.new(0,8,0,0),BackgroundTransparency=1,Text="⬡",Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(160,0,255) or Color3.fromRGB(70,50,100),TextSize=13,TextXAlignment=Enum.TextXAlignment.Center,Parent=b})
-	New("TextLabel",{Name="TextLbl",Size=UDim2.new(1,-36,1,0),Position=UDim2.new(0,32,0,0),BackgroundTransparency=1,Text=txt,Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175),TextSize=13,TextXAlignment=Enum.TextXAlignment.Left,Parent=b})
+	local iconLbl=New("TextLabel",{Size=UDim2.new(0,26,1,0),Position=UDim2.new(0,8,0,0),BackgroundTransparency=1,Text="⬡",Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(160,0,255) or Color3.fromRGB(70,50,100),TextSize=13,TextXAlignment=Enum.TextXAlignment.Center,Parent=b})
+	local textLbl=New("TextLabel",{Size=UDim2.new(1,-36,1,0),Position=UDim2.new(0,32,0,0),BackgroundTransparency=1,Text=txt,Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175),TextSize=13,TextXAlignment=Enum.TextXAlignment.Left,Parent=b})
+	b._iconLbl=iconLbl
+	b._textLbl=textLbl
 	return b
 end
 
 local function SetBtn(btn,state)
 	btn.BackgroundColor3=state and Color3.fromRGB(22,0,44) or Color3.fromRGB(5,3,12)
-	local tl=btn:FindFirstChild("TextLbl"); if tl then tl.TextColor3=state and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175) end
-	local il=btn:FindFirstChild("IconLbl"); if il then il.TextColor3=state and Color3.fromRGB(160,0,255) or Color3.fromRGB(70,50,100) end
-	local s=btn:FindFirstChildOfClass("UIStroke"); if s then s.Color=state and Color3.fromRGB(100,0,220) or Color3.fromRGB(30,20,50) end
+	btn._textLbl.TextColor3=state and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175)
+	btn._iconLbl.TextColor3=state and Color3.fromRGB(160,0,255) or Color3.fromRGB(70,50,100)
+	local s=btn:FindFirstChildOfClass("UIStroke")
+	if s then s.Color=state and Color3.fromRGB(100,0,220) or Color3.fromRGB(30,20,50) end
 end
 
 local function UpdateBtnText(btn,txt)
-	local tl=btn:FindFirstChild("TextLbl"); if tl then tl.Text=txt end
+	btn._textLbl.Text=txt
 end
 
 local BtnAim=MakeBtn("MIRA: OFF",10,false)
@@ -420,8 +423,7 @@ BtnKeybind.MouseButton1Click:Connect(function()
 	Notify("ABRINDO ALTERAR TECLAS...")
 	task.spawn(function()
 		local ok,err=pcall(function()
-			local src=game:HttpGet("https://raw.githubusercontent.com/AnjoMetraton/Zx/refs/heads/main/keybind.lua")
-			loadstring(src)()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/AnjoMetraton/Zx/refs/heads/main/keybind.lua"))()
 		end)
 		if not ok then Notify("ERRO AO CARREGAR TECLAS"); warn("[ZX] Keybind:",err) end
 	end)
@@ -650,32 +652,14 @@ end)
 local smsgs={"[ CARREGANDO MÓDULOS ]","[ INICIANDO ESP ]","[ COMPILANDO MIRA ]","[ APLICANDO PATCHES ]","[ FINALIZANDO SISTEMA ]"}
 task.spawn(function()
 	for i=0,100 do
-		LBFill.Size=UDim2.new(i/100,0,1,0)
-		LPct.Text=i.."%"
-		LCardStroke.Color=RGB(i*0.05)
-		LSym.TextColor3=RGB(i*0.05)
-		LStat.Text=smsgs[math.clamp(math.floor(i/21)+1,1,#smsgs)]
-		task.wait(0.05)
+		LBFill.Size=UDim2.new(i/100,0,1,0); LPct.Text=i.."%"; LCardStroke.Color=RGB(i*0.05); LSym.TextColor3=RGB(i*0.05)
+		LStat.Text=smsgs[math.clamp(math.floor(i/21)+1,1,#smsgs)]; task.wait(0.022)
 	end
-	task.wait(0.1)
-	Tween(LTitle,{TextTransparency=1},0.3)
-	Tween(LSub,{TextTransparency=1},0.3)
-	Tween(LPct,{TextTransparency=1},0.3)
-	Tween(LStat,{TextTransparency=1},0.3)
-	Tween(LSym,{TextTransparency=1},0.3)
-	Tween(LBFill,{BackgroundTransparency=1},0.3)
-	Tween(LTopLine,{BackgroundTransparency=1},0.3)
-	Tween(LBotLine,{BackgroundTransparency=1},0.3)
-	Tween(LCardStroke,{Transparency=1},0.3)
-	task.wait(0.35)
-	Tween(LCard,{BackgroundTransparency=1,Size=UDim2.new(0,340,0,240)},0.4)
-	Tween(GTop,{BackgroundTransparency=1},0.4)
-	Tween(GBot,{BackgroundTransparency=1},0.4)
-	for _,v in ipairs(LoadGrid:GetChildren()) do Tween(v,{BackgroundTransparency=1},0.4) end
-	Tween(LoadBG,{BackgroundTransparency=1},0.45)
-	task.wait(0.5)
-	LoadBG:Destroy()
-	Panel.Visible=true
-	Tween(Panel,{Position=UDim2.new(0.5,-160,0.5,-250)},0.55)
-	Notify("ZX CARREGADO!")
+	Tween(LoadBG,{BackgroundTransparency=1},0.5); Tween(LCard,{BackgroundTransparency=1},0.4)
+	Tween(LCardStroke,{Transparency=1},0.3); Tween(LTitle,{TextTransparency=1},0.3); Tween(LSub,{TextTransparency=1},0.3)
+	Tween(LPct,{TextTransparency=1},0.3); Tween(LStat,{TextTransparency=1},0.3); Tween(LSym,{TextTransparency=1},0.3)
+	Tween(LBFill,{BackgroundTransparency=1},0.3); Tween(LTopLine,{BackgroundTransparency=1},0.3); Tween(LBotLine,{BackgroundTransparency=1},0.3)
+	Tween(GTop,{BackgroundTransparency=1},0.4); Tween(GBot,{BackgroundTransparency=1},0.4)
+	task.wait(0.5); LoadBG:Destroy()
+	Panel.Visible=true; Tween(Panel,{Position=UDim2.new(0.5,-160,0.5,-250)},0.55); Notify("ZX CARREGADO!")
 end)
