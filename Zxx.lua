@@ -130,23 +130,20 @@ local function MakeBtn(txt,y,active)
 	local b=New("TextButton",{Size=UDim2.new(0.88,0,0,42),Position=UDim2.new(0.06,0,0,y),BackgroundColor3=active and Color3.fromRGB(22,0,44) or Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="",Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175),TextSize=13,TextXAlignment=Enum.TextXAlignment.Center,Parent=ScrollFrame,Active=true})
 	New("UICorner",{CornerRadius=UDim.new(0,10),Parent=b})
 	New("UIStroke",{Color=active and Color3.fromRGB(100,0,220) or Color3.fromRGB(30,20,50),Thickness=1.2,Parent=b})
-	local iconLbl=New("TextLabel",{Size=UDim2.new(0,26,1,0),Position=UDim2.new(0,8,0,0),BackgroundTransparency=1,Text="⬡",Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(160,0,255) or Color3.fromRGB(70,50,100),TextSize=13,TextXAlignment=Enum.TextXAlignment.Center,Parent=b})
-	local textLbl=New("TextLabel",{Size=UDim2.new(1,-36,1,0),Position=UDim2.new(0,32,0,0),BackgroundTransparency=1,Text=txt,Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175),TextSize=13,TextXAlignment=Enum.TextXAlignment.Left,Parent=b})
-	b._iconLbl=iconLbl
-	b._textLbl=textLbl
+	New("TextLabel",{Name="IconLbl",Size=UDim2.new(0,26,1,0),Position=UDim2.new(0,8,0,0),BackgroundTransparency=1,Text="⬡",Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(160,0,255) or Color3.fromRGB(70,50,100),TextSize=13,TextXAlignment=Enum.TextXAlignment.Center,Parent=b})
+	New("TextLabel",{Name="TextLbl",Size=UDim2.new(1,-36,1,0),Position=UDim2.new(0,32,0,0),BackgroundTransparency=1,Text=txt,Font=Enum.Font.GothamBold,TextColor3=active and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175),TextSize=13,TextXAlignment=Enum.TextXAlignment.Left,Parent=b})
 	return b
 end
 
 local function SetBtn(btn,state)
 	btn.BackgroundColor3=state and Color3.fromRGB(22,0,44) or Color3.fromRGB(5,3,12)
-	btn._textLbl.TextColor3=state and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175)
-	btn._iconLbl.TextColor3=state and Color3.fromRGB(160,0,255) or Color3.fromRGB(70,50,100)
-	local s=btn:FindFirstChildOfClass("UIStroke")
-	if s then s.Color=state and Color3.fromRGB(100,0,220) or Color3.fromRGB(30,20,50) end
+	local tl=btn:FindFirstChild("TextLbl"); if tl then tl.TextColor3=state and Color3.fromRGB(200,140,255) or Color3.fromRGB(160,155,175) end
+	local il=btn:FindFirstChild("IconLbl"); if il then il.TextColor3=state and Color3.fromRGB(160,0,255) or Color3.fromRGB(70,50,100) end
+	local s=btn:FindFirstChildOfClass("UIStroke"); if s then s.Color=state and Color3.fromRGB(100,0,220) or Color3.fromRGB(30,20,50) end
 end
 
 local function UpdateBtnText(btn,txt)
-	btn._textLbl.Text=txt
+	local tl=btn:FindFirstChild("TextLbl"); if tl then tl.Text=txt end
 end
 
 local BtnAim=MakeBtn("MIRA: OFF",10,false)
