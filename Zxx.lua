@@ -423,7 +423,7 @@ BtnKeybind.MouseButton1Click:Connect(function()
 	Notify("ABRINDO ALTERAR TECLAS...")
 	task.spawn(function()
 		local ok,err=pcall(function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/zxmenu2026/keybind/main/keybind.lua"))()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/AnjoMetraton/Zx/refs/heads/main/keybind.lua"))()
 		end)
 		if not ok then Notify("ERRO AO CARREGAR TECLAS"); warn("[ZX] Keybind:",err) end
 	end)
