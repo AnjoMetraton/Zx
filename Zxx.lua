@@ -420,7 +420,7 @@ BtnRGBName.MouseButton1Click:Connect(function()
 	Notify("ESP NOME RGB "..(rgbNameOn and "ATIVADO" or "DESATIVADO"))
 end)
 
-BtnKeybind.MouseButton1Click:Connect(function()
+local function openKeybind()
 	Notify("ABRINDO ALTERAR TECLAS...")
 	task.spawn(function()
 		local ok,err=pcall(function()
@@ -428,6 +428,11 @@ BtnKeybind.MouseButton1Click:Connect(function()
 		end)
 		if not ok then Notify("ERRO AO CARREGAR TECLAS"); warn("[ZX] Keybind:",err) end
 	end)
+end
+BtnKeybind.MouseButton1Click:Connect(openKeybind)
+BtnKeybind.TouchTap:Connect(openKeybind)
+BtnKeybind.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.Touch then openKeybind() end
 end)
 
 HBoxToggle.MouseButton1Click:Connect(function()
