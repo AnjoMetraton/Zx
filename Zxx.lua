@@ -655,6 +655,58 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
+local function matchInput(binding, input)
+	if not binding then return false end
+	if binding.type == "key" and input.KeyCode == binding.input then return true end
+	if binding.type == "mouse" and input.UserInputType == binding.input then return true end
+	return false
+end
+
+UserInputService.InputBegan:Connect(function(input, gp)
+	if gp then return end
+	local kb = _G.ZxKeybindings
+	if not kb then return end
+
+	if matchInput(kb["Mira (Aim)"], input) then
+		aimOn=not aimOn; UpdateBtnText(BtnAim,"MIRA: "..(aimOn and "ON" or "OFF")); SetBtn(BtnAim,aimOn)
+		Circle.Visible=aimOn; if not aimOn then resetCam() end
+		Notify("MIRA "..(aimOn and "ATIVADA" or "DESATIVADA"))
+
+	elseif matchInput(kb["Aimbot Fix"], input) then
+		aimFixOn=not aimFixOn; UpdateBtnText(BtnAimFix,"AIMBOT FIX: "..(aimFixOn and "ON" or "OFF")); SetBtn(BtnAimFix,aimFixOn)
+		if not aimFixOn then lockedPlayer=nil; LockFrame.Visible=false; resetCam() end
+		Notify("AIMBOT FIX "..(aimFixOn and "ATIVADO" or "DESATIVADO"))
+
+	elseif matchInput(kb["ESP"], input) then
+		espOn=not espOn; UpdateBtnText(BtnESP,"ESP: "..(espOn and "ON" or "OFF")); SetBtn(BtnESP,espOn)
+		if not espOn then for _,p in ipairs(Players:GetPlayers()) do removeESP(p) end espCache={} end
+		Notify("ESP "..(espOn and "ATIVADO" or "DESATIVADO"))
+
+	elseif matchInput(kb["RGB ESP"], input) then
+		rgbEspOn=not rgbEspOn; UpdateBtnText(BtnRGBESP,"RGB ESP: "..(rgbEspOn and "ON" or "OFF")); SetBtn(BtnRGBESP,rgbEspOn)
+		Notify("RGB ESP "..(rgbEspOn and "ATIVADO" or "DESATIVADO"))
+
+	elseif matchInput(kb["RGB Círculo"], input) then
+		rgbCircleOn=not rgbCircleOn; UpdateBtnText(BtnCircle,"RGB CÍRCULO: "..(rgbCircleOn and "ON" or "OFF")); SetBtn(BtnCircle,rgbCircleOn)
+		Notify("RGB CÍRCULO "..(rgbCircleOn and "ATIVADO" or "DESATIVADO"))
+
+	elseif matchInput(kb["Hitbox"], input) then
+		hitboxOn=not hitboxOn; SetToggle(HBoxToggle,HBoxDot,hitboxOn)
+		if not hitboxOn then restoreHitboxes() end
+		Notify("HITBOX "..(hitboxOn and "ATIVADO" or "DESATIVADO"))
+
+	elseif matchInput(kb["Ignorar Time"], input) then
+		ignoreTeam=not ignoreTeam; SetToggle(TeamToggle,TeamDot,ignoreTeam)
+		if not ignoreTeam and aimFixOn then lockedPlayer=nil end
+		Notify("IGNORAR TIME "..(ignoreTeam and "ON" or "OFF"))
+
+	elseif matchInput(kb["Ignorar Parede"], input) then
+		ignoreWall=not ignoreWall; SetToggle(WallToggle,WallDot,ignoreWall)
+		if not ignoreWall and aimFixOn then lockedPlayer=nil end
+		Notify("IGNORAR PAREDE "..(ignoreWall and "ON" or "OFF"))
+	end
+end)
+
 local smsgs={"[ CARREGANDO MÓDULOS ]","[ INICIANDO ESP ]","[ COMPILANDO MIRA ]","[ APLICANDO PATCHES ]","[ FINALIZANDO SISTEMA ]"}
 task.spawn(function()
 	for i=0,100 do
