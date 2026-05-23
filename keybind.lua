@@ -149,6 +149,8 @@ local function cancelWaiting()
 				local actionName = waitingRow:GetAttribute("ActionName")
 				if actionName and bindings[actionName] then
 					lbl.Text = bindings[actionName].name
+				else
+					lbl.Text = "---"
 				end
 			end
 			local stroke = bindBtn:FindFirstChildOfClass("UIStroke")
@@ -159,7 +161,7 @@ local function cancelWaiting()
 end
 
 local function makeRow(actionName, defaultKey, yOffset)
-	bindings[actionName] = defaultKey
+	bindings[actionName] = defaultKey or nil
 
 	local row = New("Frame",{
 		Size=UDim2.new(0,326,0,44),
@@ -193,7 +195,7 @@ local function makeRow(actionName, defaultKey, yOffset)
 	local keyLbl = New("TextLabel",{
 		Size=UDim2.new(1,0,1,0),
 		BackgroundTransparency=1,
-		Text=defaultKey.name,
+		Text=defaultKey and defaultKey.name or "---",
 		Font=Enum.Font.GothamBold,
 		TextColor3=Color3.fromRGB(160,100,255),
 		TextSize=11,
@@ -217,7 +219,10 @@ local function makeRow(actionName, defaultKey, yOffset)
 		if stroke then stroke.Color = Color3.fromRGB(160,0,255) end
 
 		waitingConn = UserInputService.InputBegan:Connect(function(input, gp)
-			if gp then return end
+			local isMouse = input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.MouseButton2
+				or input.UserInputType == Enum.UserInputType.MouseButton3
+			if gp and not isMouse then return end
 			local found = nil
 			for _, k in ipairs(allKeys) do
 				if k.type == "key" and input.KeyCode == k.input then
@@ -250,16 +255,16 @@ local function makeRow(actionName, defaultKey, yOffset)
 end
 
 local actions = {
-	{"Mira (Aim)",      {name="Z", type="key", input=Enum.KeyCode.Z}},
-	{"Aimbot Fix",      {name="X", type="key", input=Enum.KeyCode.X}},
-	{"ESP",             {name="C", type="key", input=Enum.KeyCode.C}},
-	{"RGB ESP",         {name="V", type="key", input=Enum.KeyCode.V}},
-	{"RGB Círculo",     {name="B", type="key", input=Enum.KeyCode.B}},
-	{"Hitbox",          {name="H", type="key", input=Enum.KeyCode.H}},
-	{"Ignorar Time",    {name="T", type="key", input=Enum.KeyCode.T}},
-	{"Ignorar Parede",  {name="Y", type="key", input=Enum.KeyCode.Y}},
-	{"Ação 1 (Custom)", {name="Mouse Botão 1", type="mouse", input=Enum.UserInputType.MouseButton1}},
-	{"Ação 2 (Custom)", {name="Mouse Botão 2", type="mouse", input=Enum.UserInputType.MouseButton2}},
+	{"Mira (Aim)",      nil},
+	{"Aimbot Fix",      nil},
+	{"ESP",             nil},
+	{"RGB ESP",         nil},
+	{"RGB Círculo",     nil},
+	{"Hitbox",          nil},
+	{"Ignorar Time",    nil},
+	{"Ignorar Parede",  nil},
+	{"Ação 1 (Custom)", nil},
+	{"Ação 2 (Custom)", nil},
 }
 
 _G.ZxKeybindings = {}
@@ -272,7 +277,7 @@ local RESET_H = 38
 for i, action in ipairs(actions) do
 	local y = TOP_PAD + (i - 1) * (ROW_H + ROW_PAD)
 	makeRow(action[1], action[2], y)
-	_G.ZxKeybindings[action[1]] = action[2]
+	_G.ZxKeybindings[action[1]] = action[2] or nil
 end
 
 local resetY = TOP_PAD + totalRows * (ROW_H + ROW_PAD)
@@ -296,10 +301,10 @@ New("UIStroke",{Color=Color3.fromRGB(50,0,100),Thickness=1,Parent=ResetBtn})
 
 local function doReset()
 	for _, action in ipairs(actions) do
-		bindings[action[1]] = action[2]
-		if _G.ZxKeybindings then _G.ZxKeybindings[action[1]] = action[2] end
+		bindings[action[1]] = nil
+		if _G.ZxKeybindings then _G.ZxKeybindings[action[1]] = nil end
 		local lbl = rowKeyLabels[action[1]]
-		if lbl then lbl.Text = action[2].name end
+		if lbl then lbl.Text = "---" end
 	end
 end
 ResetBtn.MouseButton1Click:Connect(doReset)
