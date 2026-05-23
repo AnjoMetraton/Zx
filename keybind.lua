@@ -308,12 +308,42 @@ ResetBtn.InputBegan:Connect(function(i)
 	if i.UserInputType == Enum.UserInputType.Touch then doReset() end
 end)
 
+local KbPopUp=New("TextButton",{Size=UDim2.new(0,0,0,30),Position=UDim2.new(1,-70,0,60),BackgroundColor3=Color3.fromRGB(4,2,10),BorderSizePixel=0,Text="⬡ ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,80,255),TextSize=12,Visible=false,Parent=ScreenGui,Active=true})
+New("UICorner",{CornerRadius=UDim.new(0,10),Parent=KbPopUp})
+New("UIStroke",{Color=Color3.fromRGB(100,0,220),Thickness=1.3,Parent=KbPopUp})
+
+local kbDrag=false; local kbDragStart,kbDragPos=nil,nil; local kbMoved=false
+KbPopUp.InputBegan:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
+		kbDrag=true; kbMoved=false; kbDragStart=i.Position; kbDragPos=KbPopUp.Position
+	end
+end)
+UserInputService.InputChanged:Connect(function(i)
+	if kbDrag and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then
+		local d=i.Position-kbDragStart
+		if d.Magnitude>6 then kbMoved=true end
+		KbPopUp.Position=UDim2.new(kbDragPos.X.Scale,kbDragPos.X.Offset+d.X,kbDragPos.Y.Scale,kbDragPos.Y.Offset+d.Y)
+	end
+end)
+UserInputService.InputEnded:Connect(function(i)
+	if kbDrag and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1) then
+		kbDrag=false
+		if not kbMoved then
+			KbPopUp.Visible=false
+			Panel.Visible=true
+			Tween(Panel,{Position=UDim2.new(0.5,0,0.5,0)},0.45)
+		end
+	end
+end)
+
 local function doClose()
 	cancelWaiting()
 	Tween(Panel,{Position=UDim2.new(0.5,0,1.5,0)},0.35)
-	task.delay(0.4, function()
-		pcall(function() ScreenGui:Destroy() end)
-		_G.ZxKeybindUI = nil
+	task.spawn(function()
+		task.wait(0.32)
+		Panel.Visible=false
+		KbPopUp.Size=UDim2.new(0,0,0,30); KbPopUp.Visible=true
+		Tween(KbPopUp,{Size=UDim2.new(0,58,0,30)},0.35)
 	end)
 end
 CloseBtn.MouseButton1Click:Connect(doClose)
