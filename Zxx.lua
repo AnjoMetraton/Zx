@@ -663,7 +663,10 @@ local function matchInput(binding, input)
 end
 
 UserInputService.InputBegan:Connect(function(input, gp)
-	if gp then return end
+	local isMouse = input.UserInputType == Enum.UserInputType.MouseButton1
+		or input.UserInputType == Enum.UserInputType.MouseButton2
+		or input.UserInputType == Enum.UserInputType.MouseButton3
+	if gp and not isMouse then return end
 	local kb = _G.ZxKeybindings
 	if not kb then return end
 
