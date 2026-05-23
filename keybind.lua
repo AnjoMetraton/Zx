@@ -239,6 +239,11 @@ local function makeRow(actionName, defaultKey, yOffset)
 
 	bindBtn.MouseButton1Click:Connect(onPress)
 	bindBtn.TouchTap:Connect(onPress)
+	bindBtn.InputBegan:Connect(function(i)
+		if i.UserInputType == Enum.UserInputType.Touch then
+			onPress()
+		end
+	end)
 
 	rowFrames[actionName] = row
 	return row
@@ -299,6 +304,9 @@ local function doReset()
 end
 ResetBtn.MouseButton1Click:Connect(doReset)
 ResetBtn.TouchTap:Connect(doReset)
+ResetBtn.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.Touch then doReset() end
+end)
 
 local function doClose()
 	cancelWaiting()
@@ -310,6 +318,9 @@ local function doClose()
 end
 CloseBtn.MouseButton1Click:Connect(doClose)
 CloseBtn.TouchTap:Connect(doClose)
+CloseBtn.InputBegan:Connect(function(i)
+	if i.UserInputType == Enum.UserInputType.Touch then doClose() end
+end)
 
 local dragging = false
 local dragStart, panelStart = nil, nil
