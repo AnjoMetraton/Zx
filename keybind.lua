@@ -265,6 +265,7 @@ local actions = {
 	{"Ignorar Parede",  nil},
 	{"Ação 1 (Custom)", nil},
 	{"Ação 2 (Custom)", nil},
+	{"Stealth",         nil},
 }
 
 _G.ZxKeybindings = {}
@@ -335,6 +336,7 @@ UserInputService.InputEnded:Connect(function(i)
 		kbDrag=false
 		if not kbMoved then
 			KbPopUp.Visible=false
+			BG.BackgroundTransparency=0.5; BG.Visible=true
 			Panel.Visible=true
 			Tween(Panel,{Position=UDim2.new(0.5,0,0.5,0)},0.45)
 		end
@@ -344,9 +346,11 @@ end)
 local function doClose()
 	cancelWaiting()
 	Tween(Panel,{Position=UDim2.new(0.5,0,1.5,0)},0.35)
+	Tween(BG,{BackgroundTransparency=1},0.35)
 	task.spawn(function()
 		task.wait(0.32)
 		Panel.Visible=false
+		BG.Visible=false
 		KbPopUp.Size=UDim2.new(0,0,0,30); KbPopUp.Visible=true
 		Tween(KbPopUp,{Size=UDim2.new(0,58,0,30)},0.35)
 	end)
