@@ -424,7 +424,7 @@ local function openKeybind()
 	Notify("ABRINDO ALTERAR TECLAS...")
 	task.spawn(function()
 		local ok,err=pcall(function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/AnjoMetraton/Zx/refs/heads/main/keybind.lua"))()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/zxmenu2026/keybind/main/keybind.lua"))()
 		end)
 		if not ok then Notify("ERRO AO CARREGAR TECLAS"); warn("[ZX] Keybind:",err) end
 	end)
@@ -473,6 +473,27 @@ TeamBtnBlue.MouseButton1Click:Connect(function()
 	TeamBtnBlue.BackgroundColor3=Color3.fromRGB(8,22,58); TeamBtnRed.BackgroundColor3=Color3.fromRGB(35,5,5)
 	Notify("TIME: AZUL SELECIONADO")
 end)
+
+local stealthOn=false
+local stealthHidden={}
+
+local function SetStealth(state)
+	stealthOn=state
+	if state then
+		stealthHidden={}
+		local targets={Panel,PopUp,Circle,Crosshair,LockFrame,NotifHolder}
+		for _,v in ipairs(targets) do
+			stealthHidden[v]=v.Visible
+			v.Visible=false
+		end
+	else
+		local targets={Panel,PopUp,Circle,Crosshair,LockFrame,NotifHolder}
+		for _,v in ipairs(targets) do
+			if stealthHidden[v]~=nil then v.Visible=stealthHidden[v] end
+		end
+		stealthHidden={}
+	end
+end
 
 local menuOpen=true
 local function CloseMenu()
@@ -707,6 +728,8 @@ UserInputService.InputBegan:Connect(function(input, gp)
 		ignoreWall=not ignoreWall; SetToggle(WallToggle,WallDot,ignoreWall)
 		if not ignoreWall and aimFixOn then lockedPlayer=nil end
 		Notify("IGNORAR PAREDE "..(ignoreWall and "ON" or "OFF"))
+	elseif matchInput(kb["Stealth"], input) then
+		SetStealth(not stealthOn)
 	end
 end)
 
