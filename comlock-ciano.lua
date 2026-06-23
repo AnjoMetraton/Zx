@@ -1,6 +1,5 @@
-pcall(function()
-    local Players = game and game:GetService("Players")
-    if not Players then return end
+task.spawn(function()
+    local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local CoreGui = game:GetService("CoreGui")
     local UserInputService = game:GetService("UserInputService")
@@ -10,11 +9,12 @@ pcall(function()
 
     local LocalPlayer = Players.LocalPlayer
     if not LocalPlayer then
-        local loadedEvent = game.FindFirstChildOfClass and game:FindFirstChildOfClass("Chat")
+        local waitLoaded = game and game.FindFirstChildOfClass and game:FindFirstChildOfClass("Chat")
         repeat task.wait() LocalPlayer = Players.LocalPlayer until LocalPlayer
     end
 
     local Camera = Workspace.CurrentCamera
+    if not Camera then Camera = Workspace:WaitForChild("Camera") end
     local Mouse = LocalPlayer:GetMouse()
     local isMobile = UserInputService.TouchEnabled
 
@@ -59,7 +59,12 @@ pcall(function()
     local climbAtt, climbLV, climbAV
     local AnimIds = { R15 = "rbxassetid://507765644", R6 = "rbxassetid://180436334" }
 
-    pcall(function()
+    local function safeCall(f)
+        local ok, err = pcall(f)
+        if not ok then warn("[AdminNillo] " .. tostring(err)) end
+    end
+
+    safeCall(function()
         for _, v in pairs(CoreGui:GetChildren()) do
             if string.match(v.Name, "AdminNillo") or v.Name == "Nillo_ESP" or v.Name == "Nillo_ESP2D" then v:Destroy() end
         end
@@ -244,13 +249,6 @@ pcall(function()
     end
     MainBtn.MouseButton1Click:Connect(ToggleMenu)
     UserInputService.InputBegan:Connect(function(i, gpe) if not gpe and (i.KeyCode == Enum.KeyCode.Insert or i.KeyCode == Enum.KeyCode.RightControl) then ToggleMenu() end end)
-    if isMobile then
-        UserInputService.InputBegan:Connect(function(i, gpe)
-            if not gpe and i.UserInputType == Enum.UserInputType.Touch and not Main.Visible then
-                -- swipe up to open could go here
-            end
-        end)
-    end
 
     local Title = Instance.new("TextLabel", Main)
     Title.Size = UDim2.new(1, 0, 0, 38)
@@ -703,7 +701,7 @@ pcall(function()
 
     task.spawn(function()
         while task.wait(5) do
-            if Settings.Visuals.FPSBoost then pcall(ApplyFPSBoost) end
+            safeCall(ApplyFPSBoost)
         end
     end)
 
@@ -782,7 +780,7 @@ pcall(function()
 
     task.spawn(function()
         while task.wait(0.1) do
-            pcall(function()
+            safeCall(function()
                 local targets = {}
                 for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character then table.insert(targets, p.Character) end end
                 if Settings.Combat.TargetNPCs then
@@ -960,7 +958,7 @@ pcall(function()
         local animId = (humanoid.RigType == Enum.HumanoidRigType.R15) and AnimIds.R15 or AnimIds.R6
         local animObj = Instance.new("Animation")
         animObj.AnimationId = animId
-        pcall(function() climbTrack = animator:LoadAnimation(animObj) end)
+        safeCall(function() climbTrack = animator:LoadAnimation(animObj) end)
     end
 
     if LocalPlayer.Character then onChar(LocalPlayer.Character) end
@@ -990,7 +988,7 @@ pcall(function()
     end)
 
     RunService.RenderStepped:Connect(function()
-        pcall(function()
+        safeCall(function()
             if Settings.Combat.Enabled then
                 if Settings.Combat.Mode == "Dynamic" then
                     LockedTarget = GetClosestToPlayer()
@@ -1039,7 +1037,7 @@ pcall(function()
 
     RunService.Heartbeat:Connect(function()
         if not rootPart or not humanoid then return end
-        pcall(function()
+        safeCall(function()
             if Settings.Movement.SpeedHackEnabled and not isClimbing then
                 local baseSpeed = Settings.Movement.NormalSpeed
                 humanoid.WalkSpeed = isSprinting and (baseSpeed * Settings.Movement.SprintMult) or baseSpeed
