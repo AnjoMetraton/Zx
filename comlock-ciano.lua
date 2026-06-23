@@ -457,7 +457,7 @@ task.spawn(function()
         b.Text = text
         b.TextColor3 = THEME_TEXT
         b.Font = Enum.Font.GothamBold
-        b.TextSize = isMobile purchases 13 or 12
+        b.TextSize = isMobile and 13 or 12
         b.AutoButtonColor = false
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
         local bGrad = Instance.new("UIGradient", b)
