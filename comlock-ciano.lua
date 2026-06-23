@@ -92,7 +92,7 @@ task.spawn(function()
     Backdrop.ZIndex = 0
     Backdrop.Active = true
     local backGrad = Instance.new("UIGradient", Backdrop)
-    backGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 5))})
+    backGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 5)))
     backGrad.Rotation = 90
 
     local NotifFrame = Instance.new("Frame", ScreenGui)
@@ -114,7 +114,7 @@ task.spawn(function()
         notif.BackgroundTransparency = 0.15
         Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 10)
         local notGrad = Instance.new("UIGradient", notif)
-        notGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 18, 26)), ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 14))})
+        notGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 18, 26)), ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 14)))
         notGrad.Rotation = 90
 
         local stroke = Instance.new("UIStroke", notif)
@@ -203,7 +203,7 @@ task.spawn(function()
     btnStroke.Thickness = 2.5
     btnStroke.Transparency = 0.2
     local btnGrad = Instance.new("UIGradient", MainBtn)
-    btnGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 10, 18)), ColorSequenceKeypoint.new(1, Color3.fromRGB(4, 4, 8))})
+    btnGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 10, 18)), ColorSequenceKeypoint.new(1, Color3.fromRGB(4, 4, 8)))
     btnGrad.Rotation = 90
     Drag(MainBtn)
 
@@ -224,7 +224,7 @@ task.spawn(function()
     mainStroke.Thickness = 1.5
     mainStroke.Transparency = 0.4
     local mainGrad = Instance.new("UIGradient", Main)
-    mainGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(16, 16, 24)), ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 6, 10))})
+    mainGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(16, 16, 24)), ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 6, 10)))
     mainGrad.Rotation = 135
     Drag(Main)
 
@@ -287,7 +287,7 @@ task.spawn(function()
     sideStroke.Thickness = 0.5
     sideStroke.Transparency = 0.85
     local sideGrad = Instance.new("UIGradient", Sidebar)
-    sideGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 14, 22)), ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 6, 10))})
+    sideGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 14, 22)), ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 6, 10)))
     sideGrad.Rotation = 90
 
     local SidebarLayout = Instance.new("UIListLayout", Sidebar)
@@ -329,7 +329,7 @@ task.spawn(function()
         b.AutoButtonColor = false
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 7)
         local bGrad = Instance.new("UIGradient", b)
-        bGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 16, 24))})
+        bGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 16, 24)))
         bGrad.Rotation = 90
 
         b.MouseEnter:Connect(function() if not p.Visible then TweenService:Create(b, TweenInfo.new(0.2), {BackgroundColor3 = UI_BUTTON_HOVER}):Play() end end)
@@ -461,7 +461,7 @@ task.spawn(function()
         b.AutoButtonColor = false
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
         local bGrad = Instance.new("UIGradient", b)
-        bGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 16, 24))})
+        bGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 16, 24)))
         bGrad.Rotation = 90
 
         b.MouseEnter:Connect(function() TweenService:Create(b, TweenInfo.new(0.2), {BackgroundColor3 = THEME_PRIMARY, TextColor3 = Color3.fromRGB(0, 0, 0)}):Play() end)
@@ -593,17 +593,18 @@ task.spawn(function()
     UpdatePlayerSelection()
     SendNotification("Sistema Inicializado", "Admin Nillo - Mira Instantânea", 4)
 
-    local FOVCircle = Instance.new("ImageLabel", ESP2D_Gui)
+    local FOVCircle = Instance.new("Frame", ESP2D_Gui)
     FOVCircle.Name = "FOVCircle"
     FOVCircle.Size = UDim2.new(0, 0, 0, 0)
     FOVCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
     FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
     FOVCircle.BackgroundTransparency = 1
-    FOVCircle.Image = "rbxassetid://6031287494"
-    FOVCircle.ImageColor3 = THEME_PRIMARY
-    FOVCircle.ImageTransparency = 0.6
-    FOVCircle.ScaleType = Enum.ScaleType.Fit
     FOVCircle.Visible = false
+    Instance.new("UICorner", FOVCircle).CornerRadius = UDim.new(1, 0)
+    local fovStroke = Instance.new("UIStroke", FOVCircle)
+    fovStroke.Color = THEME_PRIMARY
+    fovStroke.Thickness = 1
+    fovStroke.Transparency = 0.6
 
     local function GetIsVisible(targetChar, part)
         local origin = Camera.CFrame.Position
@@ -857,7 +858,7 @@ task.spawn(function()
             local radiusPixels = (math.tan(math.rad(fovRad / 2)) / math.tan(math.rad(camFov / 2))) * (Camera.ViewportSize.Y / 2)
             FOVCircle.Size = UDim2.new(0, radiusPixels * 2, 0, radiusPixels * 2)
             FOVCircle.Visible = true
-            FOVCircle.ImageTransparency = Settings.Combat.Enabled and 0.5 or 0.75
+            fovStroke.Transparency = Settings.Combat.Enabled and 0.4 or 0.7
         else
             FOVCircle.Visible = false
         end
