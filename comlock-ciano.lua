@@ -61,6 +61,7 @@ task.spawn(function()
 
     local function safeCall(f)
         local ok, err = pcall(f)
+        if not ok then warn("[AdminNillo] " .. tostring(err)) end
     end
 
     safeCall(function()
@@ -92,7 +93,7 @@ task.spawn(function()
     Backdrop.ZIndex = 0
     Backdrop.Active = true
     local backGrad = Instance.new("UIGradient", Backdrop)
-    backGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 5)))
+    backGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 5))})
     backGrad.Rotation = 90
 
     local NotifFrame = Instance.new("Frame", ScreenGui)
@@ -113,9 +114,9 @@ task.spawn(function()
         notif.Position = UDim2.new(1, 80, 0, 0)
         notif.BackgroundTransparency = 0.15
         Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 10)
-        local notGrad = Instance.new("UIGradient", notif)
-        notGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 18, 26)), ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 14)))
-        notGrad.Rotation = 90
+        local nGrad = Instance.new("UIGradient", notif)
+        nGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 18, 26)), ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 14))})
+        nGrad.Rotation = 90
 
         local stroke = Instance.new("UIStroke", notif)
         stroke.Color = THEME_PRIMARY
@@ -203,7 +204,7 @@ task.spawn(function()
     btnStroke.Thickness = 2.5
     btnStroke.Transparency = 0.2
     local btnGrad = Instance.new("UIGradient", MainBtn)
-    btnGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 10, 18)), ColorSequenceKeypoint.new(1, Color3.fromRGB(4, 4, 8)))
+    btnGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(10, 10, 18)), ColorSequenceKeypoint.new(1, Color3.fromRGB(4, 4, 8))})
     btnGrad.Rotation = 90
     Drag(MainBtn)
 
@@ -224,7 +225,7 @@ task.spawn(function()
     mainStroke.Thickness = 1.5
     mainStroke.Transparency = 0.4
     local mainGrad = Instance.new("UIGradient", Main)
-    mainGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(16, 16, 24)), ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 6, 10)))
+    mainGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(16, 16, 24)), ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 6, 10))})
     mainGrad.Rotation = 135
     Drag(Main)
 
@@ -287,7 +288,7 @@ task.spawn(function()
     sideStroke.Thickness = 0.5
     sideStroke.Transparency = 0.85
     local sideGrad = Instance.new("UIGradient", Sidebar)
-    sideGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 14, 22)), ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 6, 10)))
+    sideGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 14, 22)), ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 6, 10))})
     sideGrad.Rotation = 90
 
     local SidebarLayout = Instance.new("UIListLayout", Sidebar)
@@ -329,7 +330,7 @@ task.spawn(function()
         b.AutoButtonColor = false
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 7)
         local bGrad = Instance.new("UIGradient", b)
-        bGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 16, 24)))
+        bGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 16, 24))})
         bGrad.Rotation = 90
 
         b.MouseEnter:Connect(function() if not p.Visible then TweenService:Create(b, TweenInfo.new(0.2), {BackgroundColor3 = UI_BUTTON_HOVER}):Play() end end)
@@ -461,7 +462,7 @@ task.spawn(function()
         b.AutoButtonColor = false
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
         local bGrad = Instance.new("UIGradient", b)
-        bGrad.Color = ColorSequence.new(ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 16, 24)))
+        bGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(22, 22, 30)), ColorSequenceKeypoint.new(1, Color3.fromRGB(16, 16, 24))})
         bGrad.Rotation = 90
 
         b.MouseEnter:Connect(function() TweenService:Create(b, TweenInfo.new(0.2), {BackgroundColor3 = THEME_PRIMARY, TextColor3 = Color3.fromRGB(0, 0, 0)}):Play() end)
@@ -679,7 +680,7 @@ task.spawn(function()
         return chosenTarget
     end
 
-    local function ApplyFPSBoost()
+    function ApplyFPSBoost()
         if not Settings.Visuals.FPSBoost then return end
         for _, v in pairs(Workspace:GetDescendants()) do
             if LocalPlayer.Character and v:IsDescendantOf(LocalPlayer.Character) then continue end
@@ -930,7 +931,7 @@ task.spawn(function()
         end
     end)
 
-    local function stopClimbing()
+    function stopClimbing()
         isClimbing = false
         if humanoid then humanoid.WalkSpeed = Settings.Movement.SpeedHackEnabled and Settings.Movement.NormalSpeed or 16; humanoid.AutoRotate = true end
         if climbAtt then climbAtt:Destroy() climbAtt = nil end
@@ -939,7 +940,7 @@ task.spawn(function()
         if climbTrack then climbTrack:Stop(0.1) end
     end
 
-    local function playSound(id, vol, pitch)
+    function playSound(id, vol, pitch)
         if not rootPart and not LocalPlayer.PlayerGui then return end
         local s = Instance.new("Sound", rootPart or LocalPlayer.PlayerGui)
         s.SoundId = "rbxassetid://"..tostring(id)
