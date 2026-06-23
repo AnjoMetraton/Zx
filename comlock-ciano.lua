@@ -61,7 +61,6 @@ task.spawn(function()
 
     local function safeCall(f)
         local ok, err = pcall(f)
-        if not ok then warn("[AdminNillo] " .. tostring(err)) end
     end
 
     safeCall(function()
@@ -69,7 +68,7 @@ task.spawn(function()
             if string.match(v.Name, "AdminNillo") or v.Name == "Nillo_ESP" or v.Name == "Nillo_ESP2D" then v:Destroy() end
         end
         for _, v in pairs(LocalPlayer.PlayerGui:GetChildren()) do
-             if string.match(v.Name, "AdminNillo") or v.Name == "Nillo_ESP" or v.Name == "Nillo_ESP2D" then v:Destroy() end
+            if string.match(v.Name, "AdminNillo") or v.Name == "Nillo_ESP" or v.Name == "Nillo_ESP2D" then v:Destroy() end
         end
     end)
 
@@ -114,9 +113,9 @@ task.spawn(function()
         notif.Position = UDim2.new(1, 80, 0, 0)
         notif.BackgroundTransparency = 0.15
         Instance.new("UICorner", notif).CornerRadius = UDim.new(0, 10)
-        local nGrad = Instance.new("UIGradient", notif)
-        nGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 18, 26)), ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 14))})
-        nGrad.Rotation = 90
+        local notGrad = Instance.new("UIGradient", notif)
+        notGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 18, 26)), ColorSequenceKeypoint.new(1, Color3.fromRGB(8, 8, 14))})
+        notGrad.Rotation = 90
 
         local stroke = Instance.new("UIStroke", notif)
         stroke.Color = THEME_PRIMARY
@@ -423,7 +422,7 @@ task.spawn(function()
         Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
 
         local thumb = Instance.new("Frame", bar)
-        local thumbSize = isMobile and 16 : 14
+        local thumbSize = isMobile and 16 or 14
         thumb.Size = UDim2.new(0, thumbSize, 0, thumbSize)
         thumb.Position = UDim2.new((default - min) / (max - min), -(thumbSize / 2), 0.5, -(thumbSize / 2))
         thumb.BackgroundColor3 = THEME_TEXT
@@ -458,7 +457,7 @@ task.spawn(function()
         b.Text = text
         b.TextColor3 = THEME_TEXT
         b.Font = Enum.Font.GothamBold
-        b.TextSize = isMobile and 13 or 12
+        b.TextSize = isMobile purchases 13 or 12
         b.AutoButtonColor = false
         Instance.new("UICorner", b).CornerRadius = UDim.new(0, 8)
         local bGrad = Instance.new("UIGradient", b)
@@ -491,7 +490,6 @@ task.spawn(function()
     BtnSticky = AddToggle(TabCombat, "Modo Fixo (Sticky)", false, function(v) if v then Settings.Combat.Mode = "Sticky"; LockedTarget = nil; if BtnDynamic then BtnDynamic.SetState(false) end end end)
 
     AddToggle(TabCombat, "Mirar na Cabeça (Off = Corpo)", false, function(v) Settings.Combat.AimPart = v and "Head" or "HumanoidRootPart"; LockedTarget = nil end)
-
     AddToggle(TabCombat, "Mirar nas Costas (Bypass)", false, function(v) Settings.Combat.AimAtBack = v end)
     AddSlider(TabCombat, "Distância das Costas", 1, 10, 3.5, function(v) Settings.Combat.BackOffset = v end, " stds")
 
@@ -601,7 +599,7 @@ task.spawn(function()
     FOVCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
     FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
     FOVCircle.BackgroundTransparency = 1
-    FOVCircle.Image = "rbxassetid://12671975817"
+    FOVCircle.Image = "rbxassetid://6031287494"
     FOVCircle.ImageColor3 = THEME_PRIMARY
     FOVCircle.ImageTransparency = 0.6
     FOVCircle.ScaleType = Enum.ScaleType.Fit
