@@ -1,7 +1,6 @@
-if not game:IsLoaded() then game.Loaded:Wait() end
-
-task.spawn(function()
-    local Players = game:GetService("Players")
+pcall(function()
+    local Players = game and game:GetService("Players")
+    if not Players then return end
     local RunService = game:GetService("RunService")
     local CoreGui = game:GetService("CoreGui")
     local UserInputService = game:GetService("UserInputService")
@@ -10,9 +9,9 @@ task.spawn(function()
     local TweenService = game:GetService("TweenService")
 
     local LocalPlayer = Players.LocalPlayer
-    while not LocalPlayer do
-        Players.PlayerAdded:Wait()
-        LocalPlayer = Players.LocalPlayer
+    if not LocalPlayer then
+        local loadedEvent = game.FindFirstChildOfClass and game:FindFirstChildOfClass("Chat")
+        repeat task.wait() LocalPlayer = Players.LocalPlayer until LocalPlayer
     end
 
     local Camera = Workspace.CurrentCamera
