@@ -2,9 +2,10 @@
     ORANGE HUB - LARANJA TEMA (EXTREME UI OVERHAUL + INSTANT AIMBOT)
     - Tema: Cyberpunk Glassmorphism (Preto Fosco / Laranja Neon)
     - Animações Fluidas (Quint/Back)
-    - Foco Total: Aimbot Instantâneo (0 Suavidade)
+    - Foco Total: Aimbot Instantâneo (0 Suavidade) SEMPRE NA CABEÇA
     - FOV Expandido: 400
     - Otimização: NPC Cache System (Sem Lag no RenderStepped)
+    - Camera Lock ativado por padrão para máxima velocidade
 ]]
 
 if not game:IsLoaded() then game.Loaded:Wait() end
@@ -43,12 +44,14 @@ task.spawn(function()
     -- CONFIGURAÇÕES
     local Settings = {
         Combat = {
-            Enabled = false, CamLock = false, FreeCombat = false, Mode = "Dynamic", 
-            AimPart = "HumanoidRootPart", AimAtBack = false, BackOffset = 3.5, 
+            Enabled = false, CamLock = true, FreeCombat = false, Mode = "Dynamic", 
+            AimPart = "Head", -- SEMPRE MIRA NA CABEÇA
+            AimAtBack = false, BackOffset = 3.5, 
             WallCheck = false, TargetNPCs = true, MaxDistance = 9e9, FOV = 400, 
-            ShowFOV = false, Triggerbot = false, TriggerKey = Enum.UserInputType.MouseButton1, 
+            Triggerbot = false, TriggerKey = Enum.UserInputType.MouseButton1, 
             TriggerDelay = 0.1, AntiAim = false, AntiAimAngle = 30, AutoDodge = false, 
-            DodgeRange = 15, DodgeCooldown = 0.5, DodgeStyle = "Tween", DodgeDirection = "Back"
+            DodgeRange = 15, DodgeCooldown = 0.5, DodgeStyle = "Tween", DodgeDirection = "Back",
+            IgnoreMarked = false
         },
         Movement = {
             SpiderEnabled = false, InfJump = false, Noclip = false, SpeedHackEnabled = false, 
@@ -63,6 +66,8 @@ task.spawn(function()
     local canDodge, lastJumpTime, lastShotTime = true, 0, 0
     local character, humanoid, rootPart, animator, bodyVel, bodyGyro, climbTrack
     local AnimIds = { R15 = "rbxassetid://507765644", R6 = "rbxassetid://180436334" }
+
+    local MarkedPlayers = {}
 
     -- Limpeza de versões anteriores
     pcall(function()
@@ -322,25 +327,25 @@ task.spawn(function()
     local TabVisual = AddTab("VISUAL")
     local TabMisc = AddTab("MISC")
 
-    -- Populando Combate
+    -- Populando Combate (sem toggle de cabeça/corpo)
     AddToggle(TabCombat, "Ligar Sistema Principal", false, function(v) Settings.Combat.Enabled = v; LockedTarget = nil end)
-    AddToggle(TabCombat, "Travar Câmera (CamLock)", false, function(v) Settings.Combat.CamLock = v end)
+    AddToggle(TabCombat, "Travar Câmera (CamLock)", true, function(v) Settings.Combat.CamLock = v end) -- ATIVADO POR PADRÃO
     AddToggle(TabCombat, "Combate Livre (Follow)", false, function(v) Settings.Combat.FreeCombat = v end)
     
     local BtnDynamic, BtnSticky
     BtnDynamic = AddToggle(TabCombat, "Modo Dinâmico (Swap)", true, function(v) if v then Settings.Combat.Mode = "Dynamic"; if BtnSticky then BtnSticky.SetState(false) end end end)
     BtnSticky = AddToggle(TabCombat, "Modo Fixo (Sticky)", false, function(v) if v then Settings.Combat.Mode = "Sticky"; LockedTarget = nil; if BtnDynamic then BtnDynamic.SetState(false) end end end)
     
-    AddToggle(TabCombat, "Mirar na Cabeça (Off = Corpo)", false, function(v) Settings.Combat.AimPart = v and "Head" or "HumanoidRootPart"; LockedTarget = nil end)
+    -- REMOVIDA a opção de alternar cabeça/corpo (agora sempre cabeça)
     AddToggle(TabCombat, "Mirar nas Costas (Bypass)", false, function(v) Settings.Combat.AimAtBack = v end)
     AddSlider(TabCombat, "Distância Costas", 1, 10, 3.5, function(v) Settings.Combat.BackOffset = v end, " stds")
     AddToggle(TabCombat, "Mirar em NPCs", true, function(v) Settings.Combat.TargetNPCs = v; LockedTarget = nil end)
+    AddToggle(TabCombat, "Ignorar Jogadores Marcados", false, function(v) Settings.Combat.IgnoreMarked = v end)
     AddToggle(TabCombat, "Check de Parede", false, function(v) Settings.Combat.WallCheck = v end)
 
     -- Populando Aimbot
     AddSlider(TabAimbot, "Distância Máx", 100, 5000, 2500, function(v) Settings.Combat.MaxDistance = v end, " stds")
     AddSlider(TabAimbot, "FOV (Giro Total)", 1, 400, 400, function(v) Settings.Combat.FOV = v end, "°")
-    AddToggle(TabAimbot, "Mostrar Círculo FOV", false, function(v) Settings.Combat.ShowFOV = v end)
     AddToggle(TabAimbot, "Triggerbot (Tiro Auto)", false, function(v) Settings.Combat.Triggerbot = v end)
     AddSlider(TabAimbot, "Delay Trigger", 0, 1000, 50, function(v) Settings.Combat.TriggerDelay = v / 1000 end, " ms")
 
@@ -364,16 +369,62 @@ task.spawn(function()
     PlayerNameLabel.Size = UDim2.new(1, -80, 1, 0); PlayerNameLabel.Position = UDim2.new(0, 40, 0, 0); PlayerNameLabel.BackgroundTransparency = 1
     PlayerNameLabel.TextColor3 = THEME_TEXT; PlayerNameLabel.Font = Enum.Font.GothamBold; PlayerNameLabel.TextSize = 13
 
+    local MarkButton = Instance.new("TextButton", TabPlayers)
+    MarkButton.Size = UDim2.new(0.98, 0, 0, 40); MarkButton.BackgroundColor3 = UI_BUTTON; MarkButton.BackgroundTransparency = 0.1
+    MarkButton.Font = Enum.Font.GothamBold; MarkButton.TextSize = 12; MarkButton.AutoButtonColor = false
+    MarkButton.Text = "Marcar Jogador"
+    Instance.new("UICorner", MarkButton).CornerRadius = UDim.new(0, 8)
+    local markStroke = Instance.new("UIStroke", MarkButton); markStroke.Color = UI_TOGGLE_OFF
+    MarkButton.MouseEnter:Connect(function()
+        Tween(MarkButton, {BackgroundColor3 = THEME_PRIMARY_DARK, TextColor3 = THEME_BG}, 0.2)
+        markStroke.Color = THEME_PRIMARY
+    end)
+    MarkButton.MouseLeave:Connect(function()
+        Tween(MarkButton, {BackgroundColor3 = UI_BUTTON, TextColor3 = THEME_TEXT}, 0.2)
+        markStroke.Color = UI_TOGGLE_OFF
+    end)
+
+    local function UpdateMarkButton()
+        local target = Settings.Players.SelectedPlayer
+        if target then
+            local marked = MarkedPlayers[target.UserId]
+            MarkButton.Text = marked and "Desmarcar Jogador" or "Marcar Jogador"
+        else
+            MarkButton.Text = "Nenhum Jogador"
+        end
+    end
+
+    MarkButton.MouseButton1Click:Connect(function()
+        local target = Settings.Players.SelectedPlayer
+        if not target then return end
+        if MarkedPlayers[target.UserId] then
+            MarkedPlayers[target.UserId] = nil
+            SendNotification("Marcação", target.Name .. " removido dos marcados.", 1.5)
+        else
+            MarkedPlayers[target.UserId] = true
+            SendNotification("Marcação", target.Name .. " adicionado aos marcados.", 1.5)
+        end
+        UpdateMarkButton()
+    end)
+
     local function UpdatePlayerSelection()
         local allPlayers = Players:GetPlayers()
         local validPlayers = {}
         for _, p in pairs(allPlayers) do if p ~= LocalPlayer then table.insert(validPlayers, p) end end
-        if #validPlayers == 0 then PlayerNameLabel.Text = "NENHUM JOGADOR"; Settings.Players.SelectedPlayer = nil; return end
+        if #validPlayers == 0 then
+            PlayerNameLabel.Text = "NENHUM JOGADOR"
+            Settings.Players.SelectedPlayer = nil
+            UpdateMarkButton()
+            return
+        end
         if PlayerListIndex > #validPlayers then PlayerListIndex = 1 end
         if PlayerListIndex < 1 then PlayerListIndex = #validPlayers end
         Settings.Players.SelectedPlayer = validPlayers[PlayerListIndex]
         PlayerNameLabel.Text = string.upper(Settings.Players.SelectedPlayer.Name)
-        if Settings.Players.Spectating and Settings.Players.SelectedPlayer.Character then Camera.CameraSubject = Settings.Players.SelectedPlayer.Character:FindFirstChild("Humanoid") end
+        if Settings.Players.Spectating and Settings.Players.SelectedPlayer.Character then
+            Camera.CameraSubject = Settings.Players.SelectedPlayer.Character:FindFirstChild("Humanoid")
+        end
+        UpdateMarkButton()
     end
 
     BtnNext.MouseButton1Click:Connect(function() PlayerListIndex = PlayerListIndex + 1; UpdatePlayerSelection() end)
@@ -416,11 +467,11 @@ task.spawn(function()
     end)
 
     -- =========================================================================
-    -- 🔥 CONTADOR DE FPS + PING (CANTO INFERIOR DIREITO, LARANJA)
+    -- 🔥 CONTADOR DE FPS + PING
     -- =========================================================================
     local fpsFrame = Instance.new("Frame", ScreenGui)
     fpsFrame.Size = UDim2.new(0, 160, 0, 25)
-    fpsFrame.Position = UDim2.new(1, -170, 1, -35) -- canto inferior direito
+    fpsFrame.Position = UDim2.new(1, -170, 1, -35)
     fpsFrame.BackgroundColor3 = UI_PANEL
     fpsFrame.BackgroundTransparency = GLASS_TRANSPARENCY
     fpsFrame.BorderSizePixel = 0
@@ -448,7 +499,7 @@ task.spawn(function()
         while true do
             task.wait(0.5)
             local fps = frameCount / elapsedTime
-            local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000) -- ms
+            local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
             fpsLabel.Text = string.format("FPS: %d | Ping: %dms", math.floor(fps + 0.5), ping)
             frameCount = 0
             elapsedTime = 0
@@ -459,10 +510,9 @@ task.spawn(function()
     -- LÓGICA CORE (AIMBOT INSTANTÂNEO & ESP RENDER) + OTIMIZAÇÃO CACHE
     -- =========================================================================
 
-    -- 🌟 OTIMIZAÇÃO: Sistema de Cache de NPCs para zerar o LAG
     local NPCCache = {}
     task.spawn(function()
-        while task.wait(3) do -- Só varre o mapa inteiro a cada 3 segundos em vez de 60x por segundo
+        while task.wait(3) do
             if Settings.Combat.TargetNPCs then
                 pcall(function()
                     table.clear(NPCCache)
@@ -519,9 +569,12 @@ task.spawn(function()
 
         local potential = {}
         for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character then table.insert(potential, p.Character) end
+            if p ~= LocalPlayer and p.Character then
+                if not Settings.Combat.IgnoreMarked or not MarkedPlayers[p.UserId] then
+                    table.insert(potential, p.Character)
+                end
+            end
         end
-        -- OTIMIZADO: Lê os NPCs direto do cache ao invés de buscar no mapa inteiro
         if Settings.Combat.TargetNPCs then
             for _, npc in ipairs(NPCCache) do table.insert(potential, npc) end
         end
@@ -624,7 +677,6 @@ task.spawn(function()
             pcall(function()
                 local targets = {}
                 for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character then table.insert(targets, p.Character) end end
-                -- OTIMIZADO: Lê os NPCs direto do cache
                 if Settings.Combat.TargetNPCs then
                     for _, npc in ipairs(NPCCache) do table.insert(targets, npc) end
                 end
@@ -674,7 +726,6 @@ task.spawn(function()
 
         local targets = {}
         for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character then table.insert(targets, p.Character) end end
-        -- OTIMIZADO: Lê os NPCs direto do cache, salvando muito FPS aqui no RenderStepped
         if Settings.Combat.TargetNPCs then
             for _, npc in ipairs(NPCCache) do table.insert(targets, npc) end
         end
@@ -753,7 +804,7 @@ task.spawn(function()
     UserInputService.InputBegan:Connect(function(i, gpe) if not gpe and i.KeyCode == Enum.KeyCode.LeftShift then isSprinting = true end end)
     UserInputService.InputEnded:Connect(function(i) if i.KeyCode == Enum.KeyCode.LeftShift then isSprinting = false end end)
 
-    -- AIMBOT RENDER STEPPED (INSTANTÂNEO 0 LERP)
+    -- AIMBOT RENDER STEPPED (INSTANTÂNEO 0 LERP) + CAMLOCK ATIVO POR PADRÃO
     RunService.RenderStepped:Connect(function()
         pcall(function()
             if Settings.Combat.Enabled then
@@ -775,7 +826,7 @@ task.spawn(function()
                         end
 
                         if Settings.Combat.CamLock then
-                            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPosition)
+                            Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetPosition) -- INSTANTÂNEO
                         end
                         if Settings.Combat.FreeCombat and rootPart and humanoid then
                             humanoid.AutoRotate = false
