@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+local CoreGui = game:GetService("CoreGui")
 
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
@@ -19,23 +20,70 @@ local auraRange = 15
 local flySpeed = 50
 local speedMult = 2
 local jumpMult = 3
+local spinSpeed = 10
+local infJumpConn = nil
+local autoJumpConn = nil
+local bhopConn = nil
+local bhopGrounded = true
+local triggerConn = nil
+local noClipRunning = false
+
+local function roleOf(v)
+	local tool
+	for _, item in pairs(v.Backpack:GetChildren()) do
+		if item:IsA("Tool") then tool = item; break end
+	end
+	if not tool then
+		for _, item in pairs(v.Character:GetChildren()) do
+			if item:IsA("Tool") then tool = item; break end
+		end
+	end
+	if tool then
+		local n = tool.Name:lower()
+		if n:find("knife") or n:find("murder") then
+			return "ASSASSINO", Color3.fromRGB(255, 0, 0)
+		elseif n:find("gun") or n:find("revolver") or n:find("pistol") then
+			return "XERIFE", Color3.fromRGB(0, 180, 255)
+		end
+	end
+	return "INOCENTE", Color3.fromRGB(0, 255, 80)
+end
+
+local function isMurderer(v)
+	local r, _ = roleOf(v)
+	return r == "ASSASSINO"
+end
+
+local function getHead(v)
+	if v and v.Character then
+		return v.Character:FindFirstChild("Head")
+	end
+	return nil
+end
+
+local function getHRP(v)
+	if v and v.Character then
+		return v.Character:FindFirstChild("HumanoidRootPart")
+	end
+	return nil
+end
 
 local C = {
-	bg = Color3.fromRGB(10, 10, 10),
-	panel = Color3.fromRGB(16, 16, 16),
-	card = Color3.fromRGB(22, 22, 22),
-	cardHover = Color3.fromRGB(30, 30, 30),
+	bg = Color3.fromRGB(8, 8, 8),
+	panel = Color3.fromRGB(14, 14, 14),
+	card = Color3.fromRGB(20, 20, 20),
+	cardHover = Color3.fromRGB(28, 28, 28),
 	accent = Color3.fromRGB(0, 255, 255),
 	accentDim = Color3.fromRGB(0, 180, 180),
-	accentDark = Color3.fromRGB(0, 80, 80),
-	white = Color3.fromRGB(240, 240, 240),
-	gray = Color3.fromRGB(140, 140, 140),
-	darkGray = Color3.fromRGB(60, 60, 60),
-	red = Color3.fromRGB(255, 40, 40),
-	green = Color3.fromRGB(0, 255, 120),
-	off = Color3.fromRGB(50, 50, 50),
-	offText = Color3.fromRGB(180, 180, 180),
-	onBg = Color3.fromRGB(0, 40, 40),
+	accentDark = Color3.fromRGB(0, 60, 60),
+	white = Color3.fromRGB(235, 235, 235),
+	gray = Color3.fromRGB(130, 130, 130),
+	darkGray = Color3.fromRGB(55, 55, 55),
+	red = Color3.fromRGB(255, 35, 35),
+	green = Color3.fromRGB(0, 255, 100),
+	off = Color3.fromRGB(45, 45, 45),
+	offText = Color3.fromRGB(170, 170, 170),
+	onBg = Color3.fromRGB(0, 35, 35),
 	onText = Color3.fromRGB(0, 255, 255),
 }
 
@@ -44,13 +92,13 @@ ScreenGui.Name = "MM2ZXXHUB"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.IgnoreGuiInset = true
-local okCG, errCG = pcall(function() ScreenGui.Parent = game:GetService("CoreGui") end)
+local okCG, errCG = pcall(function() ScreenGui.Parent = CoreGui end)
 if not okCG then ScreenGui.Parent = player:WaitForChild("PlayerGui") end
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 360, 0, 460)
-MainFrame.Position = UDim2.new(0.5, -180, 0.5, -230)
+MainFrame.Size = UDim2.new(0, 360, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -180, 0.5, -240)
 MainFrame.BackgroundColor3 = C.bg
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -137,7 +185,7 @@ local TitleUnder = Instance.new("TextLabel")
 TitleUnder.Size = UDim2.new(0.65, 0, 0, 12)
 TitleUnder.Position = UDim2.new(0, 16, 1, -14)
 TitleUnder.BackgroundTransparency = 1
-TitleUnder.Text = "CYBERPUNK EDITION"
+TitleUnder.Text = "V2026 CYBERPUNK EDITION"
 TitleUnder.TextColor3 = C.darkGray
 TitleUnder.Font = Enum.Font.Code
 TitleUnder.TextSize = 9
@@ -184,7 +232,6 @@ local FloatingBtn = nil
 local function minimizeHub()
 	isMinimized = true
 	MainFrame.Visible = false
-
 	FloatingBtn = Instance.new("TextButton")
 	FloatingBtn.Name = "FloatingBtn"
 	FloatingBtn.Size = UDim2.new(0, 90, 0, 40)
@@ -196,16 +243,13 @@ local function minimizeHub()
 	FloatingBtn.TextSize = 12
 	FloatingBtn.BorderSizePixel = 0
 	FloatingBtn.Parent = ScreenGui
-
 	local fbCorner = Instance.new("UICorner")
 	fbCorner.CornerRadius = UDim.new(0, 8)
 	fbCorner.Parent = FloatingBtn
-
 	local fbStroke = Instance.new("UIStroke")
 	fbStroke.Color = C.accent
 	fbStroke.Thickness = 1.5
 	fbStroke.Parent = FloatingBtn
-
 	local fbGlow = Instance.new("Frame")
 	fbGlow.Size = UDim2.new(1, 4, 1, 4)
 	fbGlow.Position = UDim2.new(0, -2, 0, -2)
@@ -214,15 +258,12 @@ local function minimizeHub()
 	fbGlow.BorderSizePixel = 0
 	fbGlow.ZIndex = 0
 	fbGlow.Parent = FloatingBtn
-
 	local fbGlowCorner = Instance.new("UICorner")
 	fbGlowCorner.CornerRadius = UDim.new(0, 10)
 	fbGlowCorner.Parent = fbGlow
-
 	local fbDragStart = nil
 	local fbDragPos = nil
 	local fbDragging = false
-
 	FloatingBtn.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
 			fbDragging = true
@@ -230,20 +271,17 @@ local function minimizeHub()
 			fbDragPos = FloatingBtn.Position
 		end
 	end)
-
 	FloatingBtn.InputChanged:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch and fbDragging then
 			local delta = input.Position - fbDragStart
 			FloatingBtn.Position = UDim2.new(fbDragPos.X.Scale, fbDragPos.X.Offset + delta.X, fbDragPos.Y.Scale, fbDragPos.Y.Offset + delta.Y)
 		end
 	end)
-
 	FloatingBtn.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
 			fbDragging = false
 		end
 	end)
-
 	FloatingBtn.MouseButton1Click:Connect(function()
 		isMinimized = false
 		MainFrame.Visible = true
@@ -352,11 +390,9 @@ local function CreateTab(name, order)
 	btn.AutoButtonColor = false
 	btn.LayoutOrder = order
 	btn.Parent = TabScroll
-
 	local btnCorner = Instance.new("UICorner")
 	btnCorner.CornerRadius = UDim.new(0, 6)
 	btnCorner.Parent = btn
-
 	local page = Instance.new("Frame")
 	page.Name = name .. "Page"
 	page.Size = UDim2.new(1, 0, 0, 0)
@@ -366,23 +402,18 @@ local function CreateTab(name, order)
 	page.Visible = false
 	page.LayoutOrder = order
 	page.Parent = ContentScroll
-
 	local pLayout = Instance.new("UIListLayout")
 	pLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	pLayout.Padding = UDim.new(0, 6)
 	pLayout.Parent = page
-
 	local pPad = Instance.new("UIPadding")
 	pPad.PaddingTop = UDim.new(0, 2)
 	pPad.PaddingBottom = UDim.new(0, 2)
 	pPad.Parent = page
-
 	TabPages[name] = {Name = name, Page = page, Btn = btn}
-
 	btn.MouseButton1Click:Connect(function()
 		SwitchTab(name)
 	end)
-
 	table.insert(TabBtns, btn)
 	return page
 end
@@ -402,18 +433,15 @@ local function CreateToggle(parent, label, description, onToggle)
 	container.BackgroundColor3 = C.card
 	container.BorderSizePixel = 0
 	container.Parent = parent
-
 	local cc = Instance.new("UICorner")
 	cc.CornerRadius = UDim.new(0, 8)
 	cc.Parent = container
-
 	local accentLine = Instance.new("Frame")
 	accentLine.Size = UDim2.new(0, 3, 1, -12)
 	accentLine.Position = UDim2.new(0, 6, 0, 6)
 	accentLine.BackgroundColor3 = C.darkGray
 	accentLine.BorderSizePixel = 0
 	accentLine.Parent = container
-
 	local nameLabel = Instance.new("TextLabel")
 	nameLabel.Size = UDim2.new(0.65, 0, 0, 20)
 	nameLabel.Position = UDim2.new(0, 16, 0, 6)
@@ -424,7 +452,6 @@ local function CreateToggle(parent, label, description, onToggle)
 	nameLabel.TextSize = 13
 	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
 	nameLabel.Parent = container
-
 	local descLabel = Instance.new("TextLabel")
 	descLabel.Size = UDim2.new(0.65, 0, 0, 14)
 	descLabel.Position = UDim2.new(0, 16, 0, 28)
@@ -435,7 +462,6 @@ local function CreateToggle(parent, label, description, onToggle)
 	descLabel.TextSize = 10
 	descLabel.TextXAlignment = Enum.TextXAlignment.Left
 	descLabel.Parent = container
-
 	local toggleBtn = Instance.new("TextButton")
 	toggleBtn.Size = UDim2.new(0, 52, 0, 26)
 	toggleBtn.Position = UDim2.new(1, -64, 0.5, -13)
@@ -443,29 +469,23 @@ local function CreateToggle(parent, label, description, onToggle)
 	toggleBtn.Text = ""
 	toggleBtn.BorderSizePixel = 0
 	toggleBtn.Parent = container
-
 	local tbCorner = Instance.new("UICorner")
 	tbCorner.CornerRadius = UDim.new(1, 0)
 	tbCorner.Parent = toggleBtn
-
 	local tbStroke = Instance.new("UIStroke")
 	tbStroke.Color = C.darkGray
 	tbStroke.Thickness = 1
 	tbStroke.Parent = toggleBtn
-
 	local knob = Instance.new("Frame")
 	knob.Size = UDim2.new(0, 20, 0, 20)
 	knob.Position = UDim2.new(0, 3, 0.5, -10)
 	knob.BackgroundColor3 = C.darkGray
 	knob.BorderSizePixel = 0
 	knob.Parent = toggleBtn
-
 	local knobCorner = Instance.new("UICorner")
 	knobCorner.CornerRadius = UDim.new(1, 0)
 	knobCorner.Parent = knob
-
 	local stateOn = false
-
 	toggleBtn.MouseButton1Click:Connect(function()
 		stateOn = not stateOn
 		if stateOn then
@@ -483,7 +503,6 @@ local function CreateToggle(parent, label, description, onToggle)
 		end
 		if onToggle then onToggle(stateOn) end
 	end)
-
 	return container, function() return stateOn end
 end
 
@@ -493,18 +512,15 @@ local function CreateSlider(parent, label, min, max, default, callback)
 	container.BackgroundColor3 = C.card
 	container.BorderSizePixel = 0
 	container.Parent = parent
-
 	local cc = Instance.new("UICorner")
 	cc.CornerRadius = UDim.new(0, 8)
 	cc.Parent = container
-
 	local accentLine = Instance.new("Frame")
 	accentLine.Size = UDim2.new(0, 3, 1, -12)
 	accentLine.Position = UDim2.new(0, 6, 0, 6)
 	accentLine.BackgroundColor3 = C.darkGray
 	accentLine.BorderSizePixel = 0
 	accentLine.Parent = container
-
 	local lbl = Instance.new("TextLabel")
 	lbl.Size = UDim2.new(0.7, 0, 0, 20)
 	lbl.Position = UDim2.new(0, 16, 0, 6)
@@ -515,7 +531,6 @@ local function CreateSlider(parent, label, min, max, default, callback)
 	lbl.TextSize = 13
 	lbl.TextXAlignment = Enum.TextXAlignment.Left
 	lbl.Parent = container
-
 	local valLabel = Instance.new("TextLabel")
 	valLabel.Size = UDim2.new(0.25, 0, 0, 20)
 	valLabel.Position = UDim2.new(0.72, 0, 0, 6)
@@ -526,28 +541,23 @@ local function CreateSlider(parent, label, min, max, default, callback)
 	valLabel.TextSize = 14
 	valLabel.TextXAlignment = Enum.TextXAlignment.Right
 	valLabel.Parent = container
-
 	local sliderBg = Instance.new("Frame")
 	sliderBg.Size = UDim2.new(0.82, 0, 0, 6)
 	sliderBg.Position = UDim2.new(0.09, 0, 0, 36)
 	sliderBg.BackgroundColor3 = C.off
 	sliderBg.BorderSizePixel = 0
 	sliderBg.Parent = container
-
 	local sliderBgCorner = Instance.new("UICorner")
 	sliderBgCorner.CornerRadius = UDim.new(1, 0)
 	sliderBgCorner.Parent = sliderBg
-
 	local sliderFill = Instance.new("Frame")
 	sliderFill.Size = UDim2.new(default / max, 0, 1, 0)
 	sliderFill.BackgroundColor3 = C.accent
 	sliderFill.BorderSizePixel = 0
 	sliderFill.Parent = sliderBg
-
 	local fillCorner = Instance.new("UICorner")
 	fillCorner.CornerRadius = UDim.new(1, 0)
 	fillCorner.Parent = sliderFill
-
 	local sliderThumb = Instance.new("TextButton")
 	sliderThumb.Size = UDim2.new(0, 24, 0, 24)
 	sliderThumb.Position = UDim2.new(default / max, -12, 0.5, -12)
@@ -556,50 +566,40 @@ local function CreateSlider(parent, label, min, max, default, callback)
 	sliderThumb.BorderSizePixel = 0
 	sliderThumb.ZIndex = 2
 	sliderThumb.Parent = sliderBg
-
 	local thumbCorner = Instance.new("UICorner")
 	thumbCorner.CornerRadius = UDim.new(1, 0)
 	thumbCorner.Parent = sliderThumb
-
 	local thumbStroke = Instance.new("UIStroke")
 	thumbStroke.Color = C.accent
 	thumbStroke.Thickness = 2
 	thumbStroke.Parent = sliderThumb
-
 	local isDraggingSlider = false
-
 	sliderThumb.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
 			isDraggingSlider = true
 		end
 	end)
-
 	sliderThumb.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
 			isDraggingSlider = false
 		end
 	end)
-
 	UIS.InputChanged:Connect(function(input)
 		if not isDraggingSlider then return end
 		if input.UserInputType ~= Enum.UserInputType.Touch then return end
 		if not sliderBg.AbsoluteSize.X or sliderBg.AbsoluteSize.X <= 0 then return end
-
 		local pos = input.Position.X
 		local barAbs = sliderBg.AbsolutePosition.X
 		local barSize = sliderBg.AbsoluteSize.X
 		local norm = math.clamp((pos - barAbs) / barSize, 0, 1)
 		local val = math.floor(min + (max - min) * norm)
-
 		sliderFill.Size = UDim2.new(val / max, 0, 1, 0)
 		sliderThumb.Position = UDim2.new(val / max, -12, 0.5, -12)
 		lbl.Text = label .. ": " .. val
 		valLabel.Text = tostring(val)
 		accentLine.BackgroundColor3 = C.accent
-
 		if callback then callback(val) end
 	end)
-
 	return container
 end
 
@@ -614,18 +614,15 @@ local function CreateButton(parent, label, callback)
 	btn.BorderSizePixel = 0
 	btn.AutoButtonColor = false
 	btn.Parent = parent
-
 	local bc = Instance.new("UICorner")
 	bc.CornerRadius = UDim.new(0, 8)
 	bc.Parent = btn
-
 	local accentLine = Instance.new("Frame")
 	accentLine.Size = UDim2.new(0, 3, 1, -12)
 	accentLine.Position = UDim2.new(0, 6, 0, 6)
 	accentLine.BackgroundColor3 = C.darkGray
 	accentLine.BorderSizePixel = 0
 	accentLine.Parent = btn
-
 	btn.MouseButton1Click:Connect(function()
 		btn.BackgroundColor3 = C.cardHover
 		accentLine.BackgroundColor3 = C.accent
@@ -636,19 +633,16 @@ local function CreateButton(parent, label, callback)
 		end)()
 		callback()
 	end)
-
 	btn.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
 			btn.BackgroundColor3 = C.cardHover
 		end
 	end)
-
 	btn.InputEnded:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
 			btn.BackgroundColor3 = C.card
 		end
 	end)
-
 	return btn
 end
 
@@ -658,7 +652,7 @@ local function cleanupFly()
 	if humanoid then humanoid.PlatformStand = false end
 end
 
-CreateToggle(MurderPage, "Kill Aura", "Atira faca em jogadores proximos", function(on)
+CreateToggle(MurderPage, "Kill Aura", "Mata jogadores proximos automaticamente", function(on)
 	toggleFlags["KillAura"] = on
 	if on then
 		coroutine.wrap(function()
@@ -666,17 +660,24 @@ CreateToggle(MurderPage, "Kill Aura", "Atira faca em jogadores proximos", functi
 				if character and humanoid and rootPart then
 					for _, v in pairs(Players:GetPlayers()) do
 						if v ~= player and v.Character then
-							local head = v.Character:FindFirstChild("Head")
-							local torso = v.Character:FindFirstChild("Torso") or v.Character:FindFirstChild("UpperTorso")
-							if head and torso then
+							local head = getHead(v)
+							local hrp = getHRP(v)
+							if head and hrp then
 								local dist = (rootPart.Position - head.Position).Magnitude
 								if dist < auraRange and humanoid.Health > 0 then
 									local knife = character:FindFirstChild("Knife")
 									if not knife then
-										knife = character:FindFirstChildOfClass("Tool")
+										for _, tool in pairs(character:GetChildren()) do
+											if tool:IsA("Tool") and tool.Name:lower():find("knife") then knife = tool; break end
+										end
 									end
-									if knife and knife.Name == "Knife" then
-										knife.Parent = character
+									if not knife then
+										for _, tool in pairs(character:GetChildren()) do
+											if tool:IsA("Tool") then knife = tool; break end
+										end
+									end
+									if knife then
+										rootPart.CFrame = CFrame.new(head.Position) * CFrame.new(0, 0, 3)
 									end
 								end
 							end
@@ -689,8 +690,40 @@ CreateToggle(MurderPage, "Kill Aura", "Atira faca em jogadores proximos", functi
 	end
 end)
 
-CreateSlider(MurderPage, "Raio da Aura", 5, 30, 15, function(val)
+CreateSlider(MurderPage, "Raio da Aura", 5, 40, 15, function(val)
 	auraRange = val
+end)
+
+CreateToggle(MurderPage, "Kill All", "Teleporta e mata todos do servidor", function(on)
+	toggleFlags["KillAll"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["KillAll"] do
+				if character and rootPart then
+					for _, v in pairs(Players:GetPlayers()) do
+						if v ~= player and v.Character then
+							local head = getHead(v)
+							local hrp = getHRP(v)
+							if head and hrp then
+								local knife = character:FindFirstChild("Knife")
+								if not knife then
+									for _, tool in pairs(character:GetChildren()) do
+										if tool:IsA("Tool") then knife = tool; break end
+									end
+								end
+								if knife then
+									rootPart.CFrame = head.CFrame * CFrame.new(0, 0, 2)
+									coroutine.wait(0.05)
+									rootPart.CFrame = head.CFrame * CFrame.new(0, 0, 3)
+								end
+							end
+						end
+					end
+				end
+				coroutine.wait(0.3)
+			end
+		end)()
+	end
 end)
 
 CreateToggle(MurderPage, "Expandir Hitbox", "Expande hitbox dos alvos", function(on)
@@ -700,7 +733,7 @@ CreateToggle(MurderPage, "Expandir Hitbox", "Expande hitbox dos alvos", function
 			while toggleFlags["Hitbox"] do
 				for _, v in pairs(Players:GetPlayers()) do
 					if v ~= player and v.Character then
-						local hrp = v.Character:FindFirstChild("HumanoidRootPart")
+						local hrp = getHRP(v)
 						if hrp then
 							hrp.Size = Vector3.new(4, 6, 4)
 						end
@@ -710,7 +743,7 @@ CreateToggle(MurderPage, "Expandir Hitbox", "Expande hitbox dos alvos", function
 			end
 			for _, v in pairs(Players:GetPlayers()) do
 				if v ~= player and v.Character then
-					local hrp = v.Character:FindFirstChild("HumanoidRootPart")
+					local hrp = getHRP(v)
 					if hrp then
 						hrp.Size = Vector3.new(2, 1, 1)
 					end
@@ -726,10 +759,15 @@ CreateToggle(MurderPage, "Teletransportar Gun", "Vai ate a arma dropada", functi
 		coroutine.wrap(function()
 			while toggleFlags["TeleGun"] do
 				local gun = Workspace:FindFirstChild("GunDrop") or Workspace:FindFirstChild("Gun")
+				if not gun then
+					for _, obj in pairs(Workspace:GetChildren()) do
+						if obj.Name:lower():find("gun") then gun = obj; break end
+					end
+				end
 				if gun and rootPart then
 					rootPart.CFrame = gun.CFrame * CFrame.new(0, 5, 0)
 				end
-				coroutine.wait(0.3)
+				coroutine.wait(0.2)
 			end
 		end)()
 	end
@@ -738,14 +776,14 @@ end)
 CreateToggle(MurderPage, "Salto Infinito", "Pula sem limite", function(on)
 	toggleFlags["InfJump"] = on
 	if on then
-		coroutine.wrap(function()
-			while toggleFlags["InfJump"] do
-				UIS.JumpRequest:Wait()
-				if humanoid then
-					humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-				end
+		if infJumpConn then infJumpConn:Disconnect() infJumpConn = nil end
+		infJumpConn = UIS.JumpRequest:Connect(function()
+			if toggleFlags["InfJump"] and humanoid then
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 			end
-		end)()
+		end)
+	else
+		if infJumpConn then infJumpConn:Disconnect() infJumpConn = nil end
 	end
 end)
 
@@ -755,7 +793,95 @@ CreateToggle(MurderPage, "Velocidade Turbo", "Corre mais rapido", function(on)
 	end
 end)
 
-CreateToggle(SheriffPage, "Mira Silenciosa", "Mira auto no assassino", function(on)
+CreateToggle(MurderPage, "Arremesso Automatico", "Atira a faca automaticamente", function(on)
+	toggleFlags["AutoKnife"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["AutoKnife"] do
+				if character and rootPart then
+					for _, v in pairs(Players:GetPlayers()) do
+						if v ~= player and v.Character then
+							local head = getHead(v)
+							if head and isMurderer(player) then
+								local dist = (rootPart.Position - head.Position).Magnitude
+								if dist < auraRange then
+									coroutine.wait(0.05)
+								end
+							end
+						end
+					end
+				end
+				coroutine.wait(0.2)
+			end
+		end)()
+	end
+end)
+
+CreateToggle(MurderPage, "Fling", "Joga outros jogadores para longe", function(on)
+	toggleFlags["Fling"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["Fling"] do
+				if character and rootPart then
+					for _, v in pairs(Players:GetPlayers()) do
+						if v ~= player and v.Character then
+							local hrp = getHRP(v)
+							if hrp then
+								local dist = (rootPart.Position - hrp.Position).Magnitude
+								if dist < auraRange then
+									local bv = Instance.new("BodyVelocity")
+									bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+									bv.Velocity = (hrp.Position - rootPart.Position).Unit * 500 + Vector3.new(0, 100, 0)
+									bv.Parent = hrp
+									game:GetService("Debris"):AddItem(bv, 0.5)
+								end
+							end
+						end
+					end
+				end
+				coroutine.wait(0.3)
+			end
+		end)()
+	end
+end)
+
+CreateButton(MurderPage, "Teleportar para Assassino", function()
+	for _, v in pairs(Players:GetPlayers()) do
+		if v ~= player and v.Character and isMurderer(v) then
+			local hrp = getHRP(v)
+			if hrp and rootPart then rootPart.CFrame = hrp.CFrame * CFrame.new(0, 3, 0) end
+			break
+		end
+	end
+end)
+
+CreateButton(MurderPage, "Teleportar para Xerife", function()
+	for _, v in pairs(Players:GetPlayers()) do
+		if v ~= player and v.Character then
+			local r, _ = roleOf(v)
+			if r == "XERIFE" then
+				local hrp = getHRP(v)
+				if hrp and rootPart then rootPart.CFrame = hrp.CFrame * CFrame.new(0, 3, 0) end
+				break
+			end
+		end
+	end
+end)
+
+CreateButton(MurderPage, "Teleportar para Inocente", function()
+	for _, v in pairs(Players:GetPlayers()) do
+		if v ~= player and v.Character then
+			local r, _ = roleOf(v)
+			if r == "INOCENTE" then
+				local hrp = getHRP(v)
+				if hrp and rootPart then rootPart.CFrame = hrp.CFrame * CFrame.new(0, 3, 0) end
+				break
+			end
+		end
+	end
+end)
+
+CreateToggle(SheriffPage, "Mira Silenciosa", "Mira automaticamente no assassino", function(on)
 	toggleFlags["SilentAim"] = on
 	if on then
 		coroutine.wrap(function()
@@ -764,25 +890,59 @@ CreateToggle(SheriffPage, "Mira Silenciosa", "Mira auto no assassino", function(
 					local targetHead = nil
 					for _, v in pairs(Players:GetPlayers()) do
 						if v ~= player and v.Character then
-							for _, item in pairs(v.Backpack:GetChildren()) do
-								if item.Name == "Knife" then
-									targetHead = v.Character:FindFirstChild("Head")
-									break
-								end
+							if isMurderer(v) then
+								targetHead = getHead(v)
+								break
 							end
-							if not targetHead then
-								for _, item in pairs(v.Character:GetChildren()) do
-									if item.Name == "Knife" then
-										targetHead = v.Character:FindFirstChild("Head")
-										break
-									end
+						end
+					end
+					if targetHead then
+						Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, targetHead.Position)
+					end
+				end
+				coroutine.wait(0.03)
+			end
+		end)()
+	end
+end)
+
+CreateToggle(SheriffPage, "Atirar Auto", "Dispara no assassino automaticamente", function(on)
+	toggleFlags["AutoShoot"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["AutoShoot"] do
+				if character and rootPart then
+					for _, v in pairs(Players:GetPlayers()) do
+						if v ~= player and v.Character and isMurderer(v) then
+							local head = getHead(v)
+							if head then
+								local dist = (rootPart.Position - head.Position).Magnitude
+								if dist < 50 then
+									Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, head.Position)
 								end
 							end
 						end
-						if targetHead then break end
 					end
-					if targetHead and rootPart then
-						Camera.CFrame = CFrame.lookAt(rootPart.Position, Vector3.new(targetHead.Position.X, targetHead.Position.Y, targetHead.Position.Z))
+				end
+				coroutine.wait(0.08)
+			end
+		end)()
+	end
+end)
+
+CreateToggle(SheriffPage, "Wallbang", "Atira atraves de paredes", function(on)
+	toggleFlags["Wallbang"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["Wallbang"] do
+				if character and rootPart then
+					for _, v in pairs(Players:GetPlayers()) do
+						if v ~= player and v.Character and isMurderer(v) then
+							local head = getHead(v)
+							if head then
+								Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, head.Position)
+							end
+						end
 					end
 				end
 				coroutine.wait(0.05)
@@ -791,37 +951,158 @@ CreateToggle(SheriffPage, "Mira Silenciosa", "Mira auto no assassino", function(
 	end
 end)
 
-CreateToggle(SheriffPage, "Atirar Auto", "Dispara automaticamente no assassino", function(on)
-	toggleFlags["AutoShoot"] = on
+CreateToggle(SheriffPage, "Pegar Gun Auto", "Pega a arma automaticamente", function(on)
+	toggleFlags["GrabGun"] = on
 	if on then
 		coroutine.wrap(function()
-			while toggleFlags["AutoShoot"] do
+			while toggleFlags["GrabGun"] do
+				if character and rootPart then
+					local gun = Workspace:FindFirstChild("GunDrop") or Workspace:FindFirstChild("Gun")
+					if not gun then
+						for _, obj in pairs(Workspace:GetChildren()) do
+							if obj:IsA("Tool") and obj.Name:lower():find("gun") then gun = obj; break end
+						end
+					end
+					if gun then
+						rootPart.CFrame = gun.CFrame * CFrame.new(0, 3, 0)
+						coroutine.wait(0.1)
+					end
+				end
+				coroutine.wait(0.3)
+			end
+		end)()
+	end
+end)
+
+CreateToggle(SheriffPage, "Matar Assassino Auto", "Teleporta e elimina o assassino", function(on)
+	toggleFlags["AutoKillMurderer"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["AutoKillMurderer"] do
 				if character and rootPart then
 					for _, v in pairs(Players:GetPlayers()) do
-						if v ~= player and v.Character then
-							local hasKnife = false
-							for _, item in pairs(v.Backpack:GetChildren()) do
-								if item.Name == "Knife" then hasKnife = true; break end
-							end
-							for _, item in pairs(v.Character:GetChildren()) do
-								if item.Name == "Knife" then hasKnife = true; break end
-							end
-							if hasKnife then
-								local h = v.Character:FindFirstChild("Head")
-								if h then
-									local dist = (rootPart.Position - h.Position).Magnitude
-									if dist < 30 then
-										local hrp = character:FindFirstChild("HumanoidRootPart")
-										if hrp then
-											hrp.CFrame = h.CFrame * CFrame.new(0, 0, -5)
-										end
-									end
-								end
+						if v ~= player and v.Character and isMurderer(v) then
+							local head = getHead(v)
+							if head then
+								rootPart.CFrame = head.CFrame * CFrame.new(0, 0, 2)
 							end
 						end
 					end
 				end
-				coroutine.wait(0.15)
+				coroutine.wait(0.1)
+			end
+		end)()
+	end
+end)
+
+CreateToggle(SheriffPage, "Fake Dead", "Aparece como morto no chao", function(on)
+	if on and humanoid then
+		humanoid.Sit = true
+	elseif humanoid then
+		humanoid.Sit = false
+	end
+end)
+
+CreateButton(SheriffPage, "Revelar Papeis no Chat", function()
+	local chat = game:GetService("ReplicatedStorage"):FindFirstChild("DefaultChatSystemChatEvents")
+	if chat then
+		local req = chat:FindFirstChild("SayMessageRequest")
+		if req then
+			for _, v in pairs(Players:GetPlayers()) do
+				if v ~= player and v.Character then
+					local r, _ = roleOf(v)
+					req:FireServer(v.Name .. " = " .. r, "All")
+				end
+			end
+		end
+	end
+end)
+
+CreateToggle(SheriffPage, "ESP de Papel", "Mostra Assassino/Xerife/Inocente", function(on)
+	toggleFlags["ESPRole"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["ESPRole"] do
+				for _, v in pairs(Players:GetPlayers()) do
+					if v ~= player and v.Character then
+						local head = getHead(v)
+						if head then
+							if head:FindFirstChild("MM2role") then head.MM2role:Destroy() end
+							local role, color = roleOf(v)
+							local bg = Instance.new("BillboardGui")
+							bg.Name = "MM2role"
+							bg.Adornee = head
+							bg.Size = UDim2.new(0, 160, 0, 35)
+							bg.StudsOffset = Vector3.new(0, 3.5, 0)
+							bg.AlwaysOnTop = true
+							bg.Parent = head
+							local txt = Instance.new("TextLabel")
+							txt.Size = UDim2.new(1, 0, 1, 0)
+							txt.BackgroundTransparency = 1
+							txt.Text = role .. " | " .. v.Name
+							txt.TextColor3 = color
+							txt.Font = Enum.Font.Code
+							txt.TextScaled = true
+							txt.Parent = bg
+						end
+					end
+				end
+				coroutine.wait(0.5)
+			end
+			for _, v in pairs(Players:GetPlayers()) do
+				if v.Character then
+					local head = getHead(v)
+					if head and head:FindFirstChild("MM2role") then
+						head.MM2role:Destroy()
+					end
+				end
+			end
+		end)()
+	end
+end)
+
+CreateToggle(SheriffPage, "ESP Jogadores", "Nome e distancia de todos", function(on)
+	toggleFlags["ESPPlayers"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["ESPPlayers"] do
+				for _, v in pairs(Players:GetPlayers()) do
+					if v ~= player and v.Character then
+						local head = getHead(v)
+						if head then
+							if head:FindFirstChild("MM2name") then head.MM2name:Destroy() end
+							local hrp = getHRP(v)
+							local dist = 0
+							if hrp and rootPart then
+								dist = math.floor((rootPart.Position - head.Position).Magnitude)
+							end
+							local bg = Instance.new("BillboardGui")
+							bg.Name = "MM2name"
+							bg.Adornee = head
+							bg.Size = UDim2.new(0, 140, 0, 24)
+							bg.StudsOffset = Vector3.new(0, 2, 0)
+							bg.AlwaysOnTop = true
+							bg.Parent = head
+							local txt = Instance.new("TextLabel")
+							txt.Size = UDim2.new(1, 0, 1, 0)
+							txt.BackgroundTransparency = 1
+							txt.Text = v.Name .. " [" .. dist .. "m]"
+							txt.TextColor3 = C.white
+							txt.Font = Enum.Font.Code
+							txt.TextScaled = true
+							txt.Parent = bg
+						end
+					end
+				end
+				coroutine.wait(0.8)
+			end
+			for _, v in pairs(Players:GetPlayers()) do
+				if v.Character then
+					local head = getHead(v)
+					if head and head:FindFirstChild("MM2name") then
+						head.MM2name:Destroy()
+					end
+				end
 			end
 		end)()
 	end
@@ -833,7 +1114,7 @@ CreateToggle(SheriffPage, "ESP Gun Dropada", "Mostra onde a gun dropou", functio
 		coroutine.wrap(function()
 			while toggleFlags["ESPGun"] do
 				for _, obj in pairs(Workspace:GetChildren()) do
-					if obj.Name == "GunDrop" or (obj.Name == "Gun" and obj:IsA("BasePart")) then
+					if obj:IsA("Tool") or (obj:IsA("BasePart") and obj.Name:lower():find("gun")) then
 						if not obj:FindFirstChild("MM2esp") then
 							local bg = Instance.new("BillboardGui")
 							bg.Name = "MM2esp"
@@ -845,7 +1126,7 @@ CreateToggle(SheriffPage, "ESP Gun Dropada", "Mostra onde a gun dropou", functio
 							local txt = Instance.new("TextLabel")
 							txt.Size = UDim2.new(1, 0, 1, 0)
 							txt.BackgroundTransparency = 1
-							txt.Text = "[GUN] Dropada"
+							txt.Text = "[GUN]"
 							txt.TextColor3 = C.accent
 							txt.Font = Enum.Font.Code
 							txt.TextScaled = true
@@ -864,98 +1145,48 @@ CreateToggle(SheriffPage, "ESP Gun Dropada", "Mostra onde a gun dropou", functio
 	end
 end)
 
-CreateToggle(SheriffPage, "ESP Jogadores", "Mostra nome e distancia", function(on)
-	toggleFlags["ESPPlayers"] = on
+CreateToggle(SheriffPage, "Rastreadores", "Linhas ate os inimigos", function(on)
+	toggleFlags["Tracers"] = on
 	if on then
 		coroutine.wrap(function()
-			while toggleFlags["ESPPlayers"] do
-				for _, v in pairs(Players:GetPlayers()) do
-					if v ~= player and v.Character and v.Character:FindFirstChild("Head") then
-						local head = v.Character.Head
-						if head:FindFirstChild("MM2name") then head.MM2name:Destroy() end
-						local hrp = v.Character:FindFirstChild("HumanoidRootPart")
-						local dist = 0
-						if hrp and rootPart then
-							dist = math.floor((rootPart.Position - head.Position).Magnitude)
+			while toggleFlags["Tracers"] do
+				if character and rootPart then
+					for _, v in pairs(Players:GetPlayers()) do
+						if v ~= player and v.Character then
+							local head = getHead(v)
+							if head and head:FindFirstChild("MM2tracer") == nil then
+								local tg = Instance.new("BillboardGui")
+								tg.Name = "MM2tracer"
+								tg.Adornee = head
+								tg.Size = UDim2.new(0, 200, 0, 200)
+								tg.StudsOffset = Vector3.new(0, 0, 0)
+								tg.AlwaysOnTop = true
+								tg.Parent = head
+								local tl = Instance.new("TextLabel")
+								tl.Size = UDim2.new(1, 0, 1, 0)
+								tl.BackgroundTransparency = 1
+								tl.Text = ""
+								tl.Parent = tg
+							end
 						end
-						local bg = Instance.new("BillboardGui")
-						bg.Name = "MM2name"
-						bg.Adornee = head
-						bg.Size = UDim2.new(0, 140, 0, 30)
-						bg.StudsOffset = Vector3.new(0, 2.8, 0)
-						bg.AlwaysOnTop = true
-						bg.Parent = head
-						local txt = Instance.new("TextLabel")
-						txt.Size = UDim2.new(1, 0, 1, 0)
-						txt.BackgroundTransparency = 1
-						txt.Text = v.Name .. " [" .. dist .. "m]"
-						txt.TextColor3 = C.white
-						txt.Font = Enum.Font.Code
-						txt.TextScaled = true
-						txt.Parent = bg
 					end
 				end
 				coroutine.wait(1)
 			end
 			for _, v in pairs(Players:GetPlayers()) do
-				if v.Character and v.Character:FindFirstChild("Head") then
-					local head = v.Character.Head
-					if head:FindFirstChild("MM2name") then head.MM2name:Destroy() end
-				end
-			end
-		end)()
-	end
-end)
-
-CreateToggle(SheriffPage, "ESP de Papel", "Assassino/Xerife/Inocente", function(on)
-	toggleFlags["ESPRole"] = on
-	if on then
-		coroutine.wrap(function()
-			while toggleFlags["ESPRole"] do
-				for _, v in pairs(Players:GetPlayers()) do
-					if v ~= player and v.Character and v.Character:FindFirstChild("Head") then
-						local head = v.Character.Head
-						if head:FindFirstChild("MM2role") then head.MM2role:Destroy() end
-						local role = "Inocente"
-						local color = C.green
-						for _, item in pairs(v.Backpack:GetChildren()) do
-							if item.Name == "Knife" then role = "ASSASSINO"; color = C.red; break end
-							if item.Name == "Revolver" or item.Name == "Gun" then role = "XERIFE"; color = C.accent; break end
+				if v.Character then
+					for _, obj in pairs(v.Character:GetDescendants()) do
+						if obj.Name == "MM2tracer" then
+							obj:Destroy()
 						end
-						for _, item in pairs(v.Character:GetChildren()) do
-							if item.Name == "Knife" then role = "ASSASSINO"; color = C.red; break end
-							if item.Name == "Revolver" or item.Name == "Gun" then role = "XERIFE"; color = C.accent; break end
-						end
-						local bg = Instance.new("BillboardGui")
-						bg.Name = "MM2role"
-						bg.Adornee = head
-						bg.Size = UDim2.new(0, 160, 0, 35)
-						bg.StudsOffset = Vector3.new(0, 3.5, 0)
-						bg.AlwaysOnTop = true
-						bg.Parent = head
-						local txt = Instance.new("TextLabel")
-						txt.Size = UDim2.new(1, 0, 1, 0)
-						txt.BackgroundTransparency = 1
-						txt.Text = role .. " | " .. v.Name
-						txt.TextColor3 = color
-						txt.Font = Enum.Font.Code
-						txt.TextScaled = true
-						txt.Parent = bg
 					end
 				end
-				coroutine.wait(0.8)
-			end
-			for _, v in pairs(Players:GetPlayers()) do
-				if v.Character and v.Character:FindFirstChild("Head") then
-					local head = v.Character.Head
-					if head:FindFirstChild("MM2role") then head.MM2role:Destroy() end
-				end
 			end
 		end)()
 	end
 end)
 
-CreateToggle(EspPage, "Chams", "Colore os corpos dos inimigos", function(on)
+CreateToggle(EspPage, "Chams", "Destaque colorido nos inimigos", function(on)
 	toggleFlags["Chams"] = on
 	if on then
 		coroutine.wrap(function()
@@ -967,8 +1198,9 @@ CreateToggle(EspPage, "Chams", "Colore os corpos dos inimigos", function(on)
 								if not part:FindFirstChild("MM2cham") then
 									local h = Instance.new("Highlight")
 									h.Name = "MM2cham"
-									h.FillColor = C.accent
-									h.FillTransparency = 0.6
+									local _, color = roleOf(v)
+									h.FillColor = color
+									h.FillTransparency = 0.5
 									h.OutlineColor = C.white
 									h.OutlineTransparency = 0.3
 									h.Parent = part
@@ -1004,7 +1236,7 @@ CreateToggle(EspPage, "Raio X", "Ver atraves de paredes", function(on)
 							ns.Name = "MM2xray"
 							ns.Parent = obj
 						end
-						obj.LocalTransparencyModifier = 0.7
+						obj.LocalTransparencyModifier = 0.65
 					end
 				end
 				coroutine.wait(0.3)
@@ -1032,10 +1264,10 @@ CreateToggle(EspPage, "Luz Total", "Iluminacao maxima no mapa", function(on)
 	end
 end)
 
-CreateToggle(MovePage, "Voo", "Voa livremente", function(on)
+CreateToggle(MovePage, "Voo", "Voa livremente pela mapa", function(on)
 	toggleFlags["Fly"] = on
 	if on then
-		humanoid.PlatformStand = true
+		if humanoid then humanoid.PlatformStand = true end
 		coroutine.wrap(function()
 			while toggleFlags["Fly"] do
 				if humanoid and rootPart then
@@ -1070,11 +1302,12 @@ CreateToggle(MovePage, "Voo", "Voa livremente", function(on)
 	end
 end)
 
-CreateToggle(MovePage, "Sem Colisao", "Atravessa paredes", function(on)
+CreateToggle(MovePage, "Sem Colisao", "Atravessa paredes e objetos", function(on)
 	toggleFlags["NoClip"] = on
 	if on then
+		noClipRunning = true
 		coroutine.wrap(function()
-			while toggleFlags["NoClip"] do
+			while toggleFlags["NoClip"] and noClipRunning do
 				if character then
 					for _, part in pairs(character:GetDescendants()) do
 						if part:IsA("BasePart") then
@@ -1092,6 +1325,8 @@ CreateToggle(MovePage, "Sem Colisao", "Atravessa paredes", function(on)
 				end
 			end
 		end)()
+	else
+		noClipRunning = false
 	end
 end)
 
@@ -1108,7 +1343,7 @@ CreateToggle(MovePage, "Salto Turbo", "Pula 3x mais alto", function(on)
 	end
 end)
 
-CreateToggle(MovePage, "Voo Anti-Gravidade", "Voo suave", function(on)
+CreateToggle(MovePage, "Voo Anti-Gravidade", "Remove gravidade do voo", function(on)
 	toggleFlags["AntiGrav"] = on
 	if on then
 		coroutine.wrap(function()
@@ -1120,19 +1355,75 @@ CreateToggle(MovePage, "Voo Anti-Gravidade", "Voo suave", function(on)
 	end
 end)
 
-CreateToggle(FarmPage, "Farm Moedas", "Atrai moedas e gems", function(on)
+CreateToggle(MovePage, "BHop", "Auto pulo ao correr", function(on)
+	toggleFlags["BHop"] = on
+	if bhopConn then bhopConn:Disconnect() bhopConn = nil end
+	if on then
+		if humanoid then
+			humanoid.AutoJumpEnabled = false
+		end
+		bhopGrounded = true
+		if humanoid then
+			bhopConn = humanoid.StateChanged:Connect(function(_, new)
+				if new == Enum.HumanoidStateType.Running then
+					bhopGrounded = true
+				elseif new == Enum.HumanoidStateType.Jumping then
+					bhopGrounded = false
+				end
+			end)
+		end
+		local bhopHeartbeat = nil
+		bhopHeartbeat = RunService.Heartbeat:Connect(function()
+			if not toggleFlags["BHop"] then
+				bhopHeartbeat:Disconnect()
+				return
+			end
+			if bhopGrounded and humanoid and humanoid.MoveDirection.Magnitude > 0 then
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+				bhopGrounded = false
+			end
+		end)
+	else
+		if humanoid then
+			humanoid.AutoJumpEnabled = true
+		end
+	end
+end)
+
+CreateToggle(MovePage, "Spinbot", "Gira o personagem continuamente", function(on)
+	toggleFlags["Spinbot"] = on
+	if on then
+		coroutine.wrap(function()
+			local angle = 0
+			while toggleFlags["Spinbot"] and rootPart do
+				angle = (angle + spinSpeed) % 360
+				rootPart.CFrame = CFrame.new(rootPart.Position) * CFrame.Angles(0, math.rad(angle), 0)
+			coroutine.wait(0.03)
+		end
+	end)()
+	end
+end)
+
+CreateSlider(MovePage, "Altura do Quadril", -2, 5, 0, function(val)
+	if humanoid then humanoid.HipHeight = val end
+end)
+
+CreateToggle(FarmPage, "Farm Moedas", "Atrai moedas e gems ate voce", function(on)
 	toggleFlags["FarmCoins"] = on
 	if on then
 		coroutine.wrap(function()
 			while toggleFlags["FarmCoins"] do
 				if character and rootPart then
 					for _, obj in pairs(Workspace:GetDescendants()) do
-						if obj:IsA("BasePart") and (obj.Name:lower():find("coin") or obj.Name:lower():find("gem")) then
-							obj.CFrame = rootPart.CFrame + Vector3.new(math.random(-10, 10), 0, math.random(-10, 10))
+						if obj:IsA("BasePart") then
+							local n = obj.Name:lower()
+							if n:find("coin") or n:find("gem") or n:find("token") then
+								obj.CFrame = rootPart.CFrame + Vector3.new(math.random(-8, 8), 0, math.random(-8, 8))
+							end
 						end
 					end
 				end
-				coroutine.wait(0.08)
+				coroutine.wait(0.06)
 			end
 		end)()
 	end
@@ -1145,27 +1436,33 @@ CreateToggle(FarmPage, "Farm XP", "Coleta XP automaticamente", function(on)
 			while toggleFlags["FarmXP"] do
 				if character and rootPart then
 					for _, obj in pairs(Workspace:GetDescendants()) do
-						if obj:IsA("BasePart") and (obj.Name:lower():find("xp") or obj.Name:lower():find("exp")) then
-							obj.CFrame = rootPart.CFrame
+						if obj:IsA("BasePart") then
+							local n = obj.Name:lower()
+							if n:find("xp") or n:find("exp") or n:find("star") then
+								obj.CFrame = rootPart.CFrame
+							end
 						end
 					end
 				end
-				coroutine.wait(0.1)
+				coroutine.wait(0.08)
 			end
 		end)()
 	end
 end)
 
-CreateToggle(FarmPage, "Mystery Box Auto", "Abre mystery boxes auto", function(on)
+CreateToggle(FarmPage, "Mystery Box Auto", "Abre caixas misteriosas", function(on)
 	toggleFlags["MysteryBox"] = on
 	if on then
 		coroutine.wrap(function()
 			while toggleFlags["MysteryBox"] do
 				if character and rootPart then
 					for _, obj in pairs(Workspace:GetDescendants()) do
-						if obj:IsA("BasePart") and (obj.Name:lower():find("mystery") or obj.Name:lower():find("box")) then
-							rootPart.CFrame = obj.CFrame * CFrame.new(0, 0, -3)
-							coroutine.wait(0.5)
+						if obj:IsA("BasePart") then
+							local n = obj.Name:lower()
+							if n:find("mystery") or n:find("box") or n:find("present") or n:find("egg") then
+								rootPart.CFrame = obj.CFrame * CFrame.new(0, 0, -3)
+								coroutine.wait(0.4)
+							end
 						end
 					end
 				end
@@ -1175,7 +1472,25 @@ CreateToggle(FarmPage, "Mystery Box Auto", "Abre mystery boxes auto", function(o
 	end
 end)
 
-CreateToggle(FarmPage, "Anti AFK", "Nao ser kickado por inatividade", function(on)
+CreateToggle(FarmPage, "Coletar Tudo", "Pega todos itens do chao", function(on)
+	toggleFlags["AutoCollect"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["AutoCollect"] do
+				if character and rootPart then
+					for _, obj in pairs(Workspace:GetChildren()) do
+						if obj:IsA("Tool") or (obj:IsA("BasePart") and obj.CanCollide == false) then
+							obj.CFrame = rootPart.CFrame + Vector3.new(math.random(-3, 3), 1, math.random(-3, 3))
+						end
+					end
+				end
+				coroutine.wait(0.1)
+			end
+		end)()
+	end
+end)
+
+CreateToggle(FarmPage, "Anti AFK", "Nao eh kickado por inatividade", function(on)
 	toggleFlags["AntiAFK"] = on
 	if on then
 		local ok2, vu = pcall(function() return game:GetService("VirtualUser") end)
@@ -1186,7 +1501,7 @@ CreateToggle(FarmPage, "Anti AFK", "Nao ser kickado por inatividade", function(o
 						vu:Button2Down(Vector2.new(0, 0), Camera.CFrame)
 						vu:Button2Up(Vector2.new(0, 0), Camera.CFrame)
 					end)
-					coroutine.wait(300)
+					coroutine.wait(240)
 				end
 			end)()
 		end
@@ -1199,18 +1514,35 @@ CreateToggle(SettingsPage, "Modo Deus", "Imune a todas as mortes", function(on)
 		coroutine.wrap(function()
 			while toggleFlags["GodMode"] and humanoid do
 				humanoid.Health = humanoid.MaxHealth
-				coroutine.wait(0.3)
+				coroutine.wait(0.2)
 			end
 		end)()
 	end
 end)
 
-CreateSlider(SettingsPage, "Velocidade do Voo", 10, 150, 50, function(val)
+CreateToggle(SettingsPage, "Anti-Fling", "Protege contra fling de outros", function(on)
+	toggleFlags["AntiFling"] = on
+	if on then
+		coroutine.wrap(function()
+			while toggleFlags["AntiFling"] and rootPart do
+				rootPart.Velocity = Vector3.new(0, rootPart.Velocity.Y, 0)
+				rootPart.RotVelocity = Vector3.new(0, 0, 0)
+				coroutine.wait(0.1)
+			end
+		end)()
+	end
+end)
+
+CreateSlider(SettingsPage, "Velocidade do Voo", 10, 200, 50, function(val)
 	flySpeed = val
 end)
 
-CreateSlider(SettingsPage, "Raio da Aura", 5, 30, 15, function(val)
+CreateSlider(SettingsPage, "Raio da Aura", 5, 40, 15, function(val)
 	auraRange = val
+end)
+
+CreateSlider(SettingsPage, "Velocidade Spinbot", 1, 50, 10, function(val)
+	spinSpeed = val
 end)
 
 CreateSlider(SettingsPage, "Multiplicador Velocidade", 1, 5, 2, function(val)
@@ -1224,6 +1556,23 @@ CreateSlider(SettingsPage, "Multiplicador Salto", 1, 5, 3, function(val)
 		humanoid.JumpPower = 50 * val
 		humanoid.JumpHeight = 72 * val
 	end
+end)
+
+CreateSlider(SettingsPage, "Campo de Visao (FOV)", 30, 120, 70, function(val)
+	if Camera then Camera.FieldOfView = val end
+end)
+
+CreateButton(SettingsPage, "Server Hop", function()
+	local ts = game:GetService("TeleportService")
+	local placeId = game.PlaceId
+	ts:Teleport(placeId, player)
+end)
+
+CreateButton(SettingsPage, "Reconectar", function()
+	local ts = game:GetService("TeleportService")
+	local placeId = game.PlaceId
+	local jobId = game.JobId
+	ts:TeleportToPlaceInstance(placeId, jobId, player)
 end)
 
 CreateButton(SettingsPage, "Reiniciar Personagem", function()
@@ -1244,17 +1593,14 @@ CreateButton(MovePage, "Joystick Virtual para Voo", function()
 	JoyBase.BorderSizePixel = 0
 	JoyBase.Visible = true
 	JoyBase.Parent = ScreenGui
-
 	local JoyCorner = Instance.new("UICorner")
 	JoyCorner.CornerRadius = UDim.new(1, 0)
 	JoyCorner.Parent = JoyBase
-
 	local JoyStroke = Instance.new("UIStroke")
 	JoyStroke.Color = C.accent
 	JoyStroke.Thickness = 1.5
 	JoyStroke.Transparency = 0.3
 	JoyStroke.Parent = JoyBase
-
 	local JoyKnob = Instance.new("TextButton")
 	JoyKnob.Size = UDim2.new(0, 40, 0, 40)
 	JoyKnob.Position = UDim2.new(0.5, -20, 0.5, -20)
@@ -1262,11 +1608,9 @@ CreateButton(MovePage, "Joystick Virtual para Voo", function()
 	JoyKnob.Text = ""
 	JoyKnob.BorderSizePixel = 0
 	JoyKnob.Parent = JoyBase
-
 	local JoyKnobCorner = Instance.new("UICorner")
 	JoyKnobCorner.CornerRadius = UDim.new(1, 0)
 	JoyKnobCorner.Parent = JoyKnob
-
 	local joyDragging = false
 	JoyBase.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
@@ -1306,16 +1650,27 @@ end)
 
 player.CharacterAdded:Connect(function(newChar)
 	character = newChar
-	humanoid = newChar:WaitForChild("Humanoid")
-	rootPart = newChar:WaitForChild("HumanoidRootPart")
+	local timeout = 0
+	repeat
+		humanoid = newChar:FindFirstChild("Humanoid")
+		rootPart = newChar:FindFirstChild("HumanoidRootPart")
+		timeout = timeout + 1
+		if timeout > 100 then break end
+		coroutine.wait(0.1)
+	until humanoid and rootPart
 	Camera = Workspace.CurrentCamera
 	cleanupFly()
+	if infJumpConn then
+		infJumpConn:Disconnect()
+		infJumpConn = nil
+	end
+	if bhopConn then
+		bhopConn:Disconnect()
+		bhopConn = nil
+	end
+	noClipRunning = false
 	for key, _ in pairs(toggleFlags) do
 		toggleFlags[key] = false
-	end
-	coroutine.wait(0.2)
-	if toggleFlags["GodMode"] and humanoid then
-		humanoid.Health = humanoid.MaxHealth
 	end
 end)
 
