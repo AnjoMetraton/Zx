@@ -328,11 +328,11 @@ local function SwitchTab(name)
 	CurrentTab = name
 	for _, t in pairs(TabBtns) do
 		if t.Name == name then
-			t.Btn.BackgroundColor3 = C.accentDark
-			t.Btn.TextColor3 = C.accent
+			t.BackgroundColor3 = C.accentDark
+			t.TextColor3 = C.accent
 		else
-			t.Btn.BackgroundColor3 = C.card
-			t.Btn.TextColor3 = C.gray
+			t.BackgroundColor3 = C.card
+			t.TextColor3 = C.gray
 		end
 	end
 end
