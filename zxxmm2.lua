@@ -1,8 +1,8 @@
+local ok, err = pcall(function()
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
 local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
@@ -10,24 +10,31 @@ local character = player.Character or player.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
 local rootPart = character:WaitForChild("HumanoidRootPart")
 local Camera = Workspace.CurrentCamera
-local Mouse = player:GetMouse()
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MM2ZXXHUB"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.Parent = CoreGui
+ScreenGui.Parent = game:GetService("CoreGui")
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 350, 0, 440)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -260)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -220)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
-MainFrame.Draggable = false
 MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(80, 140, 255)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
 
 local dragStart = nil
 local dragPos = nil
@@ -53,15 +60,6 @@ MainFrame.InputEnded:Connect(function(input)
 		isDragging = false
 	end
 end)
-
-local MainCorner = Instance.new("UICorner")
-MainCorner.CornerRadius = UDim.new(0, 12)
-MainCorner.Parent = MainFrame
-
-local MainStroke = Instance.new("UIStroke")
-MainStroke.Color = Color3.fromRGB(80, 140, 255)
-MainStroke.Thickness = 2
-MainStroke.Parent = MainFrame
 
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 50)
@@ -134,8 +132,8 @@ local function minimizeHub()
 
 	FloatingBtn = Instance.new("TextButton")
 	FloatingBtn.Name = "FloatingBtn"
-	FloatingBtn.Size = UDim2.new(0, 50, 0, 36)
-	FloatingBtn.Position = UDim2.new(0, 8, 1, -46)
+	FloatingBtn.Size = UDim2.new(0, 80, 0, 44)
+	FloatingBtn.Position = UDim2.new(0, 8, 1, -50)
 	FloatingBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 220)
 	FloatingBtn.Text = "mm2 zxx.hub"
 	FloatingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -192,6 +190,8 @@ local function minimizeHub()
 		FloatingBtn = nil
 	end)
 end
+
+MinBtn.MouseButton1Click:Connect(minimizeHub)
 
 local TabBar = Instance.new("ScrollingFrame")
 TabBar.Size = UDim2.new(1, -10, 0, 55)
@@ -282,7 +282,7 @@ local function CreateTab(name, icon, color)
 
 	btn.MouseButton1Click:Connect(function()
 		SwitchTab(name)
-		for _, t in pairs(TabPages) do
+		for _, t in pairs(TabBtns) do
 			t.Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
 		end
 		btn.BackgroundColor3 = Color3.fromRGB(color or 60, 60, 100)
@@ -471,18 +471,11 @@ local auraRange = 15
 local flySpeed = 50
 local speedMult = 2
 local jumpMult = 3
-local flyBV = nil
-local flyBG = nil
 
-CreateToggle(MurderPage, "Kill Aura - Faca", "Atira faca automaticamente em jogadores perigosos", function(on)
+CreateToggle(MurderPage, "Kill Aura - Faca", "Atira faca em jogadores proximos", function(on)
 	if on then
 		coroutine.wrap(function()
-			while true do
-				local s = nil
-				for _, t in pairs(TabBtns) do
-					if t.Page.Name == "Assassino" then s = t.Btn.BackgroundColor3 break end
-				end
-				if not on then break end
+			while on do
 				if character and humanoid and rootPart then
 					for _, v in pairs(Players:GetPlayers()) do
 						if v ~= player and v.Character then
@@ -515,11 +508,10 @@ CreateSlider(MurderPage, "Raio da Aura", 5, 30, 15, function(val)
 	auraRange = val
 end)
 
-CreateToggle(MurderPage, "Expandir Hitbox", "Expande o hitbox dos inimigos para acertar mais facil", function(on)
+CreateToggle(MurderPage, "Expandir Hitbox", "Expande hitbox dos alvos", function(on)
 	if on then
 		coroutine.wrap(function()
-			while true do
-				if not on then break end
+			while on do
 				for _, v in pairs(Players:GetPlayers()) do
 					if v ~= player and v.Character then
 						local hrp = v.Character:FindFirstChild("HumanoidRootPart")
@@ -534,11 +526,10 @@ CreateToggle(MurderPage, "Expandir Hitbox", "Expande o hitbox dos inimigos para 
 	end
 end)
 
-CreateToggle(MurderPage, "Teletransportar para Gun", "Vai ate a arma dropada no mapa", function(on)
+CreateToggle(MurderPage, "Teletransportar para Gun", "Vai ate a arma dropada", function(on)
 	if on then
 		coroutine.wrap(function()
-			while true do
-				if not on then break end
+			while on do
 				local gun = Workspace:FindFirstChild("GunDrop") or Workspace:FindFirstChild("Gun")
 				if gun and rootPart then
 					rootPart.CFrame = gun.CFrame * CFrame.new(0, 5, 0)
@@ -549,7 +540,7 @@ CreateToggle(MurderPage, "Teletransportar para Gun", "Vai ate a arma dropada no 
 	end
 end)
 
-CreateToggle(MurderPage, "Salto Infinito", "Pula sem limite no ar", function(on)
+CreateToggle(MurderPage, "Salto Infinito", "Pula sem limite", function(on)
 	if on then
 		UIS.JumpRequest:Connect(function()
 			if on then
@@ -559,11 +550,10 @@ CreateToggle(MurderPage, "Salto Infinito", "Pula sem limite no ar", function(on)
 	end
 end)
 
-CreateToggle(MurderPage, "Pegar Gun Auto", "Pega a arma automaticamente quando cai no chao", function(on)
+CreateToggle(MurderPage, "Pegar Gun Auto", "Pega a arma quando cai", function(on)
 	if on then
 		coroutine.wrap(function()
-			while true do
-				if not on then break end
+			while on do
 				if character and rootPart then
 					for _, obj in pairs(Workspace:GetChildren()) do
 						if obj.Name == "GunDrop" or (obj.Name == "Gun" and obj:IsA("BasePart")) then
@@ -577,19 +567,16 @@ CreateToggle(MurderPage, "Pegar Gun Auto", "Pega a arma automaticamente quando c
 	end
 end)
 
-CreateToggle(MurderPage, "Velocidade Turbo (Assassino)", "Corre 3x mais rapido como Assassin", function(on)
-	if on then
-		if humanoid then humanoid.WalkSpeed = 50 end
-	else
-		if humanoid then humanoid.WalkSpeed = 16 end
+CreateToggle(MurderPage, "Velocidade Turbo (Assassino)", "Corre 3x mais rapido", function(on)
+	if humanoid then
+		humanoid.WalkSpeed = on and 50 or 16
 	end
 end)
 
-CreateToggle(SheriffPage, "Mira Silenciosa - Atirar no Assassin", "Mira automaticamente para o Assassin quando sheriff", function(on)
+CreateToggle(SheriffPage, "Mira Silenciosa - Atirar no Assassin", "Mira auto no murderer como xerife", function(on)
 	if on then
 		coroutine.wrap(function()
-			while true do
-				if not on then break end
+			while on do
 				if character then
 					local targetHead = nil
 					for _, v in pairs(Players:GetPlayers()) do
@@ -615,11 +602,10 @@ CreateToggle(SheriffPage, "Mira Silenciosa - Atirar no Assassin", "Mira automati
 	end
 end)
 
-CreateToggle(SheriffPage, "Atirar Auto no Assassin", "Dispara automaticamente quando um Assassin esta proximo", function(on)
+CreateToggle(SheriffPage, "Atirar Auto no Assassin", "Dispara automaticamente no murderer", function(on)
 	if on then
 		coroutine.wrap(function()
-			while true do
-				if not on then break end
+			while on do
 				if character then
 					for _, v in pairs(Players:GetPlayers()) do
 						if v ~= player and v.Character then
@@ -651,16 +637,15 @@ CreateToggle(SheriffPage, "Atirar Auto no Assassin", "Dispara automaticamente qu
 	end
 end)
 
-CreateToggle(SheriffPage, "ESP de Gun Dropada", "Mostra onde a gun dropou no mapa com um icone", function(on)
+CreateToggle(SheriffPage, "ESP de Gun Dropada", "Mostra onde a gun dropou", function(on)
 	if on then
 		coroutine.wrap(function()
-			while true do
-				if not on then break end
+			while on do
 				for _, obj in pairs(Workspace:GetChildren()) do
 					if obj.Name == "GunDrop" or (obj.Name == "Gun" and obj:IsA("BasePart")) then
-						if obj:FindFirstChild("MM2MobileESP") == nil then
+						if obj:FindFirstChild("MM2esp") == nil then
 							local bg = Instance.new("BillboardGui")
-							bg.Name = "MM2MobileESP"
+							bg.Name = "MM2esp"
 							bg.Adornee = obj
 							bg.Size = UDim2.new(0, 150, 0, 40)
 							bg.StudsOffset = Vector3.new(0, 3, 0)
@@ -681,24 +666,23 @@ CreateToggle(SheriffPage, "ESP de Gun Dropada", "Mostra onde a gun dropou no map
 			end
 			for _, obj in pairs(Workspace:GetChildren()) do
 				if obj.Name == "GunDrop" or (obj.Name == "Gun" and obj:IsA("BasePart")) then
-					if obj:FindFirstChild("MM2MobileESP") then obj.MM2MobileESP:Destroy() end
+					if obj:FindFirstChild("MM2esp") then obj.MM2esp:Destroy() end
 				end
 			end
 		end)()
 	end
 end)
 
-CreateToggle(SheriffPage, "ESP de Gun dos Jogadores", "Mostra a que todos os jogadores tem armas equipadas", function(on)
+CreateToggle(SheriffPage, "ESP de Gun dos Jogadores", "Mostra quem tem arma equipada", function(on)
 	if on then
 		coroutine.wrap(function()
-			while true do
-				if not on then break end
+			while on do
 				for _, v in pairs(Players:GetPlayers()) do
 					if v ~= player and v.Character then
 						local hrp = v.Character:FindFirstChild("HumanoidRootPart")
-						if hrp and hrp:FindFirstChild("MM2GUN") == nil then
+						if hrp and hrp:FindFirstChild("MM2gun") == nil then
 							local bg = Instance.new("BillboardGui")
-							bg.Name = "MM2GUN"
+							bg.Name = "MM2gun"
 							bg.Adornee = hrp
 							bg.Size = UDim2.new(0, 100, 0, 30)
 							bg.StudsOffset = Vector3.new(0, 3, 0)
@@ -707,7 +691,7 @@ CreateToggle(SheriffPage, "ESP de Gun dos Jogadores", "Mostra a que todos os jog
 							local txt = Instance.new("TextLabel")
 							txt.Size = UDim2.new(1, 0, 1, 0)
 							txt.BackgroundTransparency = 1
-							txt.Text = "[GUN] Equipada"
+							txt.Text = "[GUN]"
 							txt.TextColor3 = Color3.fromRGB(255, 200, 0)
 							txt.Font = Enum.Font.GothamBold
 							txt.TextScaled = true
@@ -721,11 +705,9 @@ CreateToggle(SheriffPage, "ESP de Gun dos Jogadores", "Mostra a que todos os jog
 	end
 end)
 
-CreateToggle(SheriffPage, "Rastreadores", "Linhas do centro da tela ate os inimigos", function(on)
-	
-end)
+CreateToggle(SheriffPage, "Rastreadores", "Linhas ate os inimigos", function(on) end)
 
-CreateToggle(MovePage, "Voo", "Voa livremente pelo mapa com o joystick virtual", function(on)
+CreateToggle(MovePage, "Voo", "Voa livremente", function(on)
 	if on then
 		humanoid.PlatformStand = true
 		coroutine.wrap(function()
@@ -744,18 +726,9 @@ CreateToggle(MovePage, "Voo", "Voa livremente pelo mapa com o joystick virtual",
 						flyBG.P = 9e4
 						flyBG.Parent = rootPart
 					end
-					local camCF = Camera.CoordinateFrame
 					local moveDir = Vector3.new(0, 0.5, 0)
-					if FloatingBtn then
-						local joyVisible = false
-						if FloatingBtn.Parent then
-							joyVisible = true
-						end
-					end
 					if moveDir.Magnitude > 0 then
 						moveDir = moveDir.Unit * flySpeed
-					else
-						moveDir = Vector3.new(0, 0.5, 0)
 					end
 					flyBV.Velocity = moveDir
 					flyBG.CFrame = camCF
@@ -773,7 +746,7 @@ CreateToggle(MovePage, "Voo", "Voa livremente pelo mapa com o joystick virtual",
 	end
 end)
 
-CreateToggle(MovePage, "Sem Colisao", "Atravessa paredes e objetos", function(on)
+CreateToggle(MovePage, "Sem Colisao", "Atravessa paredes", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on do
@@ -810,11 +783,9 @@ CreateToggle(MovePage, "Salto Turbo", "Pula 3x mais alto", function(on)
 	end
 end)
 
-CreateToggle(MovePage, "Caminho Fase", "Atravessa superficies solidas", function(on)
-	
-end)
+CreateToggle(MovePage, "Caminho Fase", "Atravessa superficies", function(on) end)
 
-CreateToggle(MovePage, "Voo Anti-Gravidade", "Voo suave sem ficar subindo infinitamente", function(on)
+CreateToggle(MovePage, "Voo Anti-Gravidade", "Voo suave sem subir infinito", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on and rootPart do
@@ -825,14 +796,14 @@ CreateToggle(MovePage, "Voo Anti-Gravidade", "Voo suave sem ficar subindo infini
 	end
 end)
 
-CreateToggle(EspPage, "ESP de Papeis (Assassin/Xerife/Inocente)", "Mostra o papel de cada jogador acima da cabeca com cores", function(on)
+CreateToggle(EspPage, "ESP de Papel (Assassin/Xerife/Inocente)", "Mostra papel de cada jogador", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on do
 				for _, v in pairs(Players:GetPlayers()) do
 					if v ~= player and v.Character and v.Character:FindFirstChild("Head") then
 						local head = v.Character.Head
-						if head:FindFirstChild("MM2Role") then head.MM2Role:Destroy() end
+						if head:FindFirstChild("MM2role") then head.MM2role:Destroy() end
 						local role = "Inocente"
 						local color = Color3.fromRGB(0, 255, 0)
 						for _, item in pairs(v.Backpack:GetChildren()) do
@@ -844,7 +815,7 @@ CreateToggle(EspPage, "ESP de Papeis (Assassin/Xerife/Inocente)", "Mostra o pape
 							if item.Name == "Revolver" or item.Name == "Gun" then role = "Xerife"; color = Color3.fromRGB(0, 0, 255); break end
 						end
 						local bg = Instance.new("BillboardGui")
-						bg.Name = "MM2Role"
+						bg.Name = "MM2role"
 						bg.Adornee = head
 						bg.Size = UDim2.new(0, 160, 0, 35)
 						bg.StudsOffset = Vector3.new(0, 3.5, 0)
@@ -865,24 +836,24 @@ CreateToggle(EspPage, "ESP de Papeis (Assassin/Xerife/Inocente)", "Mostra o pape
 			for _, v in pairs(Players:GetPlayers()) do
 				if v.Character and v.Character:FindFirstChild("Head") then
 					local head = v.Character.Head
-					if head:FindFirstChild("MM2Role") then head.MM2Role:Destroy() end
+					if head:FindFirstChild("MM2role") then head.MM2role:Destroy() end
 				end
 			end
 		end)()
 	end
 end)
 
-CreateToggle(EspPage, "ESP de Jogadores (Nome + Distancia)", "Mostra nome e distancia de todos os jogadores", function(on)
+CreateToggle(EspPage, "ESP de Jogadores (Nome + Distancia)", "Mostra nome e distancia", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on do
 				for _, v in pairs(Players:GetPlayers()) do
 					if v ~= player and v.Character and v.Character:FindFirstChild("Head") then
 						local head = v.Character.Head
-						if head:FindFirstChild("MM2Name") then head.MM2Name:Destroy() end
+						if head:FindFirstChild("MM2name") then head.MM2name:Destroy() end
 						local dist = math.floor((rootPart.Position - head.Position).Magnitude)
 						local bg = Instance.new("BillboardGui")
-						bg.Name = "MM2Name"
+						bg.Name = "MM2name"
 						bg.Adornee = head
 						bg.Size = UDim2.new(0, 140, 0, 30)
 						bg.StudsOffset = Vector3.new(0, 2.8, 0)
@@ -904,9 +875,7 @@ CreateToggle(EspPage, "ESP de Jogadores (Nome + Distancia)", "Mostra nome e dist
 	end
 end)
 
-CreateToggle(EspPage, "ESP de Gun Dropada", "Indicador da posicao da gun dropada", function(on) end)
-
-CreateToggle(EspPage, "Chams (Destaque Colorido)", "Colore o corpo dos outros jogadores para identificar facil", function(on)
+CreateToggle(EspPage, "Chams (Destaque Colorido)", "Colore os corpos dos inimigos", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on do
@@ -914,16 +883,16 @@ CreateToggle(EspPage, "Chams (Destaque Colorido)", "Colore o corpo dos outros jo
 					if v ~= player and v.Character then
 						for _, part in pairs(v.Character:GetChildren()) do
 							if part:IsA("BasePart") then
-								if on and part:FindFirstChild("MM2CHAM") == nil then
+								if on and part:FindFirstChild("MM2cham") == nil then
 									local h = Instance.new("Highlight")
-									h.Name = "MM2CHAM"
+									h.Name = "MM2cham"
 									h.FillColor = Color3.fromRGB(255, 0, 0)
 									h.FillTransparency = 0.5
 									h.OutlineColor = Color3.fromRGB(255, 0, 0)
 									h.OutlineTransparency = 0
 									h.Parent = part
-								elseif not on and part:FindFirstChild("MM2CHAM") then
-									part.MM2CHAM:Destroy()
+								elseif not on and part:FindFirstChild("MM2cham") then
+									part.MM2cham:Destroy()
 								end
 							end
 						end
@@ -935,15 +904,15 @@ CreateToggle(EspPage, "Chams (Destaque Colorido)", "Colore o corpo dos outros jo
 	end
 end)
 
-CreateToggle(EspPage, "Raio X (Ver Atraves de Paredes)", "Torna paredes e objetos semi-transparentes", function(on)
+CreateToggle(EspPage, "Raio X (Ver Paredes)", "Torna paredes semi-transparentes", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on do
 				for _, obj in pairs(Workspace:GetDescendants()) do
 					if obj:IsA("BasePart") and obj.Transparency < 1 then
-						if not obj:FindFirstChild("MM2Xray") then
+						if not obj:FindFirstChild("MM2xray") then
 							local ns = obj:Clone()
-							ns.Name = "MM2Xray"
+							ns.Name = "MM2xray"
 							ns.Transparency = 0.7
 							ns.Parent = obj
 						end
@@ -953,15 +922,15 @@ CreateToggle(EspPage, "Raio X (Ver Atraves de Paredes)", "Torna paredes e objeto
 				coroutine.wait(0.3)
 			end
 			for _, obj in pairs(Workspace:GetDescendants()) do
-				if obj:IsA("BasePart") and obj:FindFirstChild("MM2Xray") then
-					obj:FindFirstChild("MM2Xray"):Destroy()
+				if obj:IsA("BasePart") and obj:FindFirstChild("MM2xray") then
+					obj:FindFirstChild("MM2xray"):Destroy()
 				end
 			end
 		end)()
 	end
 end)
 
-CreateToggle(EspPage, "Luz Total (Fullbright)", "Iluminacao maxima no mapa sem escuridao", function(on)
+CreateToggle(EspPage, "Luz Total", "Iluminacao maxima no mapa", function(on)
 	if on then
 		Lighting.Brightness = 2
 		Lighting.Ambient = Color3.fromRGB(255, 255, 255)
@@ -974,7 +943,7 @@ CreateToggle(EspPage, "Luz Total (Fullbright)", "Iluminacao maxima no mapa sem e
 	end
 end)
 
-CreateToggle(FarmPage, "Farm Auto de Moedas", "Atrai todas as moedas e gems para perto do personagem", function(on)
+CreateToggle(FarmPage, "Farm Auto de Moedas", "Atrai moedas e gems", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on do
@@ -991,7 +960,7 @@ CreateToggle(FarmPage, "Farm Auto de Moedas", "Atrai todas as moedas e gems para
 	end
 end)
 
-CreateToggle(FarmPage, "Farm Auto de XP", "Fica AFK coletando experiencia automaticamente", function(on)
+CreateToggle(FarmPage, "Farm Auto de XP", "Coleta XP automaticamente", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on do
@@ -1008,7 +977,7 @@ CreateToggle(FarmPage, "Farm Auto de XP", "Fica AFK coletando experiencia automa
 	end
 end)
 
-CreateToggle(FarmPage, "Mystery Box Auto", "Vai ate as mystery boxes e abre automaticamente", function(on)
+CreateToggle(FarmPage, "Mystery Box Auto", "Abre mystery boxes auto", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on do
@@ -1026,7 +995,7 @@ CreateToggle(FarmPage, "Mystery Box Auto", "Vai ate as mystery boxes e abre auto
 	end
 end)
 
-CreateToggle(FarmPage, "Anti AFK", "Simula movimentos para nao ser kickado por inatividade", function(on)
+CreateToggle(FarmPage, "Anti AFK", "Nao ser kickado por inatividade", function(on)
 	if on then
 		local ok, vu = pcall(function() return game:GetService("VirtualUser") end)
 		if ok and vu then
@@ -1041,7 +1010,7 @@ CreateToggle(FarmPage, "Anti AFK", "Simula movimentos para nao ser kickado por i
 	end
 end)
 
-CreateToggle(SettingsPage, "Modo Deus", "Imune a todas as mortes e danos", function(on)
+CreateToggle(SettingsPage, "Modo Deus", "Imune a todas as mortes", function(on)
 	if on then
 		coroutine.wrap(function()
 			while on and humanoid do
@@ -1060,12 +1029,12 @@ CreateSlider(SettingsPage, "Raio da Aura", 5, 30, 15, function(val)
 	auraRange = val
 end)
 
-CreateSlider(SettingsPage, "Mult de Velocidade", 1, 5, 2, function(val)
+CreateSlider(SettingsPage, "Multiplicador de Velocidade", 1, 5, 2, function(val)
 	speedMult = val
 	if humanoid then humanoid.WalkSpeed = 16 * val end
 end)
 
-CreateSlider(SettingsPage, "Mult de Salto", 1, 5, 3, function(val)
+CreateSlider(SettingsPage, "Multiplicador de Salto", 1, 5, 3, function(val)
 	jumpMult = val
 	if humanoid then
 		humanoid.JumpPower = 50 * val
@@ -1073,11 +1042,11 @@ CreateSlider(SettingsPage, "Mult de Salto", 1, 5, 3, function(val)
 	end
 end)
 
-CreateButton(SettingsPage, "Reiniciar Personagem (Respawn)", function()
+CreateButton(SettingsPage, "Reiniciar Personagem", function()
 	if humanoid then humanoid.Health = 0 end
 end)
 
-CreateButton(SettingsPage, "Atualizar Interface do Hub", function()
+CreateButton(SettingsPage, "Atualizar Interface", function()
 	ScreenGui:Destroy()
 end)
 
@@ -1150,6 +1119,9 @@ player.CharacterAdded:Connect(function(newChar)
 	end
 end)
 
-MinBtn.MouseButton1Click:Connect(minimizeHub)
+print("mm2 zxx.hub carregado com sucesso!")
+end)
 
-print("mm2 zxx.hub carregado com sucesso!")")
+if not ok then
+	print("mm2 zxx.hub erro: " .. tostring(err))
+endend
