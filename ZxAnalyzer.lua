@@ -199,21 +199,32 @@ return scanTxt
 end
 local function TryDecompile(inst)
 local src=nil
-pcall(function()
-if decompile then src=decompile(inst) end
-end)
-if type(src)=="string" and #src>20 then return src end
-pcall(function()
+local err="VAZIO"
+if decompile then
+local ok,res=pcall(function() return decompile(inst) end)
+if ok and type(res)=="string" and #res>20 then return res end
+if not ok then err="DECOMPILE_ERRO" end
+else err="SEM_DECOMPILE" end
 if getscriptbytecode then
-local bc=getscriptbytecode(inst)
-if type(bc)=="string" and #bc>0 then src="BYTECODE "..#bc.." "..inst:GetFullName() end
-end
-end)
-if type(src)=="string" and #src>20 then return src end
+local ok,bc=pcall(function() return getscriptbytecode(inst) end)
+if ok and type(bc)=="string" and #bc>0 then
+local b64=""
 pcall(function()
-if getscripthash then src="HASH "..getscripthash(inst) end
+local enc=crypt and crypt.base64 and crypt.base64.encode or base64encode
+if enc then b64=enc(bc):sub(1,20000) end
 end)
-return src
+if b64~="" then return "BYTECODE_B64 "..b64 end
+local path=""
+pcall(function() path=inst:GetFullName() end)
+return "BYTECODE "..#bc.." "..path
+end
+if not ok then err="BYTECODE_ERRO" end
+end
+if getscripthash then
+local ok,hs=pcall(function() return getscripthash(inst) end)
+if ok and hs then return "HASH "..hs end
+end
+return nil
 end
 local function CopyScripts()
 srcCache={}
@@ -261,9 +272,14 @@ if isServer then server=server+1 table.insert(manifest,{name=nm,path=path,st="SE
 end
 end
 pcall(function()
-if writefile then writefile("ZX_MANIFEST.json",Http:JSONEncode({place=game.PlaceId,ok=ok,fail=fail,server=server,total=#ordered,items=manifest})) end
+local fn={place=game.PlaceId,ok=ok,fail=fail,server=server,total=#ordered,items=manifest}
+if decompile then fn.hasDec=1 else fn.hasDec=0 end
+if getscriptbytecode then fn.hasBc=1 else fn.hasBc=0 end
+if writefile then writefile("ZX_MANIFEST.json",Http:JSONEncode(fn)) end
 end)
-srcStat="FONTES "..ok.." FALHA "..fail.." SERVER "..server
+local hd=decompile and "DEC" or "SDEC"
+local hb=getscriptbytecode and "BC" or "SBC"
+srcStat="FONTES "..ok.." FALHA "..fail.." SERVER "..server.." "..hd..hb
 SrcStat.Text=srcStat
 Notify(srcStat)
 return ok
@@ -314,6 +330,10 @@ local b=New("TextButton",{Size=UDim2.new(0.92,0,0,44),BackgroundColor3=Color3.fr
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=b})
 New("UIStroke",{Color=Color3.fromRGB(30,20,50),Thickness=1.2,Parent=b})
 New("TextLabel",{Size=UDim2.new(1,-10,1,0),Position=UDim2.new(0,10,0,0),BackgroundTransparency=1,Text=txt,Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(170,160,190),TextSize=12,TextXAlignment=Enum.TextXAlignment.Left,Parent=b})
+b.MouseButton1Click:Connect(function()
+Tween(b,{Size=UDim2.new(0.88,0,0,40)},0.08)
+task.delay(0.09,function() pcall(function() Tween(b,{Size=UDim2.new(0.92,0,0,44)},0.16) end) end)
+end)
 return b
 end
 Section("STATUS CLIENT")
@@ -409,28 +429,6 @@ if #remoteLog>200 then table.remove(remoteLog,1) end
 end)
 end
 end
-end
-end)
-pcall(function()
-local old=hookmetamethod and hookmetamethod(game,"__namecall",function() end)
-if old then hookmetamethod(game,"__namecall",old) end
-local mt=getrawmetatable and getrawmetatable(game)
-if mt then
-setreadonly(mt,false)
-local oldName=mt.__namecall
-mt.__namecall=newcclosure(function(self,...)
-local m=getnamecallmethod and getnamecallmethod() or ""
-if spyOn and (m=="FireServer" or m=="InvokeServer") then
-pcall(function()
-if self and self.Parent and self.Parent.Name=="events" then
-table.insert(remoteLog,{n=self.Name,m=m,t=os.time()})
-if #remoteLog>200 then table.remove(remoteLog,1) end
-end
-end)
-end
-return oldName(self,...)
-end)
-setreadonly(mt,true)
 end
 end)
 task.spawn(function()
