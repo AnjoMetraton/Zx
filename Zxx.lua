@@ -848,7 +848,7 @@ if p~=LP then p.CharacterAdded:Connect(function(c) c:WaitForChild("HumanoidRootP
 end
 LP.CharacterAdded:Connect(function(c) c:WaitForChild("HumanoidRootPart",5) task.wait(1) if autoTeam then AutoDetect(false) end end)
 task.spawn(function()
-while task.wait(2) do
+while task.wait(1) do
 if autoTeam then pcall(function() AutoDetect(true) end) end
 end
 end)
