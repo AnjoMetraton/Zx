@@ -397,6 +397,8 @@ Notify("SUA VEZ")
 if perfectOn then
 local evS=Ev("SendSlap")
 if evS then pcall(function() evS:FireServer(1) end) end
+firedTurn=true
+task.delay(0.5,function() if myTurn then firedTurn=false end end)
 end
 else
 myTurn=false
