@@ -345,6 +345,7 @@ Section("SCRIPTS LOCAL E NAO LOCAL")
 SrcStat=New("TextLabel",{Size=UDim2.new(0.92,0,0,26),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="FONTES 0",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,100,255),TextSize=11,Parent=Scroll})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=SrcStat})
 Section("ACOES")
+BAll=BigBtn("SCANEAR E SALVAR TUDO")
 BScan=BigBtn("ESCANEAR CLIENT")
 BSend=BigBtn("SALVAR LOCAL")
 BCopySrc=BigBtn("COPIAR SCRIPTS LOCAL")
@@ -367,6 +368,36 @@ InfoBox.Text=detectInfo
 DumpBox.Text=txt:sub(1,6000)
 Notify("SCAN OK")
 task.spawn(function() SendDump() end)
+end)
+BAll.MouseButton1Click:Connect(function()
+task.spawn(function()
+InfoBox.Text="SCAN TOTAL"
+local txt=ScanClient()
+InfoBox.Text=detectInfo
+DumpBox.Text=txt:sub(1,6000)
+SendDump()
+CopyScripts()
+SendSources()
+pcall(function()
+guiLog={}
+for _,d in ipairs(LP:WaitForChild("PlayerGui"):GetDescendants()) do
+if d:IsA("TextButton") or d:IsA("TextLabel") or d:IsA("TextBox") then
+local tx=""
+pcall(function() tx=d.Text:sub(1,60) end)
+if #guiLog<200 then table.insert(guiLog,d:GetFullName().." "..tx) end
+end
+end
+if writefile then writefile("ZX_GUILOG.json",Http:JSONEncode(guiLog)) end
+end)
+pcall(function()
+if writefile then writefile("ZX_REMOTELOG.json",Http:JSONEncode(remoteLog)) end
+end)
+pcall(function()
+if writefile then writefile("ZX_ANIMLOG.json",Http:JSONEncode(animLog)) end
+end)
+InfoBox.Text=detectInfo.." TUDO SALVO"
+Notify("TUDO SALVO LOCAL")
+end)
 end)
 BSend.MouseButton1Click:Connect(function()
 task.spawn(function() SendDump() end)
