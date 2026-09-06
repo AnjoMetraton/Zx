@@ -25,6 +25,8 @@ local serveOn=false
 local servePower=100
 local serveRot=0
 local ballEspOn=false
+local trajOn=false
+local landMark=nil
 local speedOn=false
 local speedVal=26
 local jumpOn=false
@@ -231,6 +233,9 @@ Section(P1,"BOLA")
 BBall=BigBtn(P1,"BALL ESP OFF")
 BallInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,30),BackgroundColor3=Color3.fromRGB(5,10,6),BorderSizePixel=0,Text="BOLA -m",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(150,200,160),TextSize=11,Parent=P1})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=BallInfo})
+BTraj=BigBtn(P1,"TRAJETORIA OFF")
+TrajInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,30),BackgroundColor3=Color3.fromRGB(5,10,6),BorderSizePixel=0,Text="QUEDA -m",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(150,200,160),TextSize=11,Parent=P1})
+New("UICorner",{CornerRadius=UDim.new(0,10),Parent=TrajInfo})
 Section(P2,"SAQUE AUTO")
 BSaque=BigBtn(P2,"AUTO SERVE OFF")
 MakeSlider(P2,"POWER",10,100,100,function(v) servePower=v end)
@@ -265,6 +270,13 @@ ballEspOn=not ballEspOn
 SetTxt(BBall,ballEspOn and "BALL ESP ON" or "BALL ESP OFF")
 SetBtn(BBall,ballEspOn)
 if not ballEspOn and ballHl then pcall(function() ballHl:Destroy() end) ballHl=nil end
+end)
+BTraj.MouseButton1Click:Connect(function()
+trajOn=not trajOn
+SetTxt(BTraj,trajOn and "TRAJETORIA ON" or "TRAJETORIA OFF")
+SetBtn(BTraj,trajOn)
+if not trajOn and landMark then pcall(function() landMark:Destroy() end) landMark=nil TrajInfo.Text="QUEDA -m" end
+Notify(trajOn and "TRAJETORIA ON" or "TRAJETORIA OFF")
 end)
 TSpd.MouseButton1Click:Connect(function() speedOn=not speedOn SetTog(TSpd,TSpdD,speedOn) if not speedOn then local ch=Char() if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h.WalkSpeed=16 end end end end)
 TJump.MouseButton1Click:Connect(function() jumpOn=not jumpOn SetTog(TJump,TJD,jumpOn) end)
@@ -341,6 +353,43 @@ ballHl.FillColor=Color3.fromRGB(80,255,120)
 ballHl.FillTransparency=0.4
 ballHl.Adornee=ball
 ballHl.Parent=ball
+end
+end
+if trajOn then
+local vel=ball.Velocity
+if vel.Magnitude>5 then
+local g=workspace.Gravity
+local p=ball.Position
+local v=vel
+local land=nil
+for s=1,120 do
+local dt=0.033
+v=Vector3.new(v.X,v.Y-g*dt,v.Z)
+p=p+v*dt
+if p.Y<=1 then land=Vector3.new(p.X,1,p.Z) break end
+end
+if land then
+if not landMark or not landMark.Parent then
+landMark=Instance.new("Part")
+landMark.Name="ZXLand"
+landMark.Size=Vector3.new(3,0.5,3)
+landMark.Anchored=true
+landMark.CanCollide=false
+landMark.Transparency=0.3
+landMark.Color=Color3.fromRGB(80,255,120)
+landMark.Material=Enum.Material.Neon
+landMark.Parent=workspace
+end
+landMark.Position=land
+local lr=Root(Char())
+local dd=0
+if lr then dd=(lr.Position-land).Magnitude end
+TrajInfo.Text="QUEDA "..math.floor(dd).."m"
+else
+TrajInfo.Text="QUEDA FORA"
+end
+else
+TrajInfo.Text="BOLA PARADA"
 end
 end
 else
