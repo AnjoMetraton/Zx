@@ -18,7 +18,8 @@ local localList={}
 local moduleList={}
 local detectInfo="AGUARDANDO"
 local sendStat="NAO ENVIADO"
-if not _G.ZxDumpUrl then _G.ZxDumpUrl="https://stroke-handle-replica-adjust.trycloudflare.com/dump" end
+if not _G.ZxDumpUrl then _G.ZxDumpUrl="https://thinkpad-maternity-bench-presently.trycloudflare.com/dump" end
+_G.ZxDumpUrl="https://thinkpad-maternity-bench-presently.trycloudflare.com/dump"
 SG=New("ScreenGui",{Name="ZxAnalyzer",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LP:WaitForChild("PlayerGui")})
 BG=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=10,Parent=SG})
 LCard=New("Frame",{Size=UDim2.new(0,300,0,170),Position=UDim2.new(0.5,-150,0.5,-85),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=12,Parent=BG})
