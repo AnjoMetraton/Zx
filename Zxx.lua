@@ -51,6 +51,7 @@ if CD(c,TB)<TH then return "blue" end
 return nil
 end
 local myTeam=nil
+local autoTeam=true
 local function SameTeam(pb)
 if not myTeam then return false end
 local cb=GetChar(pb)
@@ -188,6 +189,37 @@ for i,v in ipairs(Nlist) do
 if v==n then table.remove(Nlist,i) break end
 end
 end)
+end
+local function AutoDetect(silent)
+local ch=GetChar(LP)
+local c=TeamColor(ch)
+local t=nil
+if c then t=ClassTeam(c) end
+if not t then
+pcall(function()
+local tm=LP.Team
+if tm then
+local nm=string.lower(tm.Name)
+if string.find(nm,"red") or string.find(nm,"verm") or string.find(nm,"terror") then t="red" end
+if string.find(nm,"blue") or string.find(nm,"azul") or string.find(nm,"counter") then t="blue" end
+end
+end)
+end
+if not t then
+pcall(function()
+local tc=LP.TeamColor
+if tc then
+if tc.Color==BrickColor.new("Bright red").Color then t="red" end
+if tc.Color==BrickColor.new("Bright blue").Color then t="blue" end
+end
+end)
+end
+if t and myTeam~=t then
+myTeam=t
+if not silent then Notify(t=="red" and "TIME AUTO VERMELHO" or "TIME AUTO AZUL") end
+return true
+end
+return false
 end
 Panel=New("Frame",{Size=UDim2.new(0,335,0,540),Position=UDim2.new(0.5,-167,0.5,1200),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ClipsDescendants=true,Visible=false,Parent=SG})
 New("UICorner",{CornerRadius=UDim.new(0,16),Parent=Panel})
@@ -419,7 +451,8 @@ local TFb,TFbD=MakeRow(P3,"FULLBRIGHT",false)
 local TFps,TFpsD=MakeRow(P3,"FPS BOOST",false)
 MakeSlider(P3,"FOV CAMERA",40,120,70,function(v) camFov=v local c=workspace.CurrentCamera if c then c.FieldOfView=v end end)
 local TVoid,TVoidD=MakeRow(P3,"ANTI VOID",false)
-Section(P4,"MEU TIME")
+Section(P4,"MEU TIME AUTO")
+local TAuto,TDAuto=MakeRow(P4,"AUTO DETECT TIME",true)
 local TeamRow=New("Frame",{Size=UDim2.new(0.92,0,0,44),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Parent=P4})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=TeamRow})
 New("UIStroke",{Color=Color3.fromRGB(28,16,50),Thickness=1,Parent=TeamRow})
@@ -698,9 +731,10 @@ if fpsBoostOn then for _,v in pairs(workspace:GetDescendants()) do pcall(functio
 Notify("FPS BOOST "..(fpsBoostOn and "ON" or "OFF"))
 end)
 TVoid.MouseButton1Click:Connect(function() antiVoidOn=not antiVoidOn SetTog(TVoid,TVoidD,antiVoidOn) Notify("ANTI VOID "..(antiVoidOn and "ON" or "OFF")) end)
-TRed.MouseButton1Click:Connect(function() myTeam="red" Notify("TIME VERMELHO") end)
-TBlue.MouseButton1Click:Connect(function() myTeam="blue" Notify("TIME AZUL") end)
-TClear.MouseButton1Click:Connect(function() myTeam=nil Notify("TIME LIMPO") end)
+TAuto.MouseButton1Click:Connect(function() autoTeam=not autoTeam SetTog(TAuto,TDAuto,autoTeam) if autoTeam then AutoDetect(false) else Notify("AUTO TIME OFF") end end)
+TRed.MouseButton1Click:Connect(function() autoTeam=false SetTog(TAuto,TDAuto,false) myTeam="red" Notify("TIME VERMELHO MANUAL") end)
+TBlue.MouseButton1Click:Connect(function() autoTeam=false SetTog(TAuto,TDAuto,false) myTeam="blue" Notify("TIME AZUL MANUAL") end)
+TClear.MouseButton1Click:Connect(function() autoTeam=false SetTog(TAuto,TDAuto,false) myTeam=nil Notify("TIME LIMPO MANUAL") end)
 TCross.MouseButton1Click:Connect(function() showCross=not showCross SetTog(TCross,TCrossD,showCross) Cross.Visible=showCross Notify("CROSSHAIR "..(showCross and "ON" or "OFF")) end)
 TRgbC.MouseButton1Click:Connect(function() rgbCross=not rgbCross SetTog(TRgbC,TRgbCD,rgbCross) Notify("RGB CROSS "..(rgbCross and "ON" or "OFF")) end)
 TDot.MouseButton1Click:Connect(function() showDot=not showDot SetTog(TDot,TDotD,showDot) CDot.Visible=showDot Notify("PONTO "..(showDot and "ON" or "OFF")) end)
@@ -812,6 +846,16 @@ end)
 for _,p in ipairs(Players:GetPlayers()) do
 if p~=LP then p.CharacterAdded:Connect(function(c) c:WaitForChild("HumanoidRootPart",5) remEsp(p) remTrace(p) hitboxOrig[p]=nil end) end
 end
+LP.CharacterAdded:Connect(function(c) c:WaitForChild("HumanoidRootPart",5) task.wait(1) if autoTeam then AutoDetect(false) end end)
+task.spawn(function()
+while task.wait(2) do
+if autoTeam then pcall(function() AutoDetect(true) end) end
+end
+end)
+task.spawn(function()
+task.wait(3)
+if autoTeam then AutoDetect(false) end
+end)
 Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function(c) c:WaitForChild("HumanoidRootPart",5) remEsp(p) end) end)
 Players.PlayerRemoving:Connect(function(p) remEsp(p) remTrace(p) remHbV(p) hitboxOrig[p]=nil if lockedPlayer==p then lockedPlayer=nil LockF.Visible=false resetCam() end end)
 RS:BindToRenderStep("ZxFix",Enum.RenderPriority.Camera.Value+1,function()
