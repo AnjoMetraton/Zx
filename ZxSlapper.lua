@@ -19,6 +19,34 @@ end
 local autoGuessOn=false
 local perfectOn=false
 local queueOn=false
+local dodgeOn=false
+local lastAnim={}
+local myTurn=false
+local firedTurn=false
+local function GetBar()
+local pg=LP:FindFirstChildOfClass("PlayerGui")
+if not pg then return nil end
+local sg=pg:FindFirstChild("ScreenGui")
+local mt=sg and sg:FindFirstChild("meter")
+if not mt or mt.Visible==false then return nil end
+local cl=mt:FindFirstChild("color")
+local bar=cl and cl:FindFirstChild("bar")
+if not bar then return nil end
+return bar
+end
+local function HookAnims(ch,plr)
+pcall(function()
+local hum=ch and ch:FindFirstChildOfClass("Humanoid")
+local an=hum and hum:FindFirstChildOfClass("Animator")
+if an then
+an.AnimationPlayed:Connect(function(tr)
+local id=""
+pcall(function() id=tr.Animation.AnimationId end)
+lastAnim[plr.Name]={id=id,t=os.clock()}
+end)
+end
+end)
+end
 local forceVal=50
 local speedOn=false
 local speedVal=26
@@ -218,6 +246,7 @@ BClear=BigBtn(P1,"LIMPAR LOG")
 Section(P2,"QUANDO VOCE E O SLAPPER")
 BSlap=BigBtn(P2,"DAR SLAP AGORA")
 BPerfect=BigBtn(P2,"AUTO PERFECT OFF")
+BDodge=BigBtn(P2,"AUTO DODGE OFF")
 BQueue=BigBtn(P2,"AUTO QUEUE OFF")
 BForce=BigBtn(P2,"FORCA 50")
 Section(P3,"MOVIMENTO")
@@ -249,23 +278,39 @@ end
 end
 local function OnSlapped()
 local near=NearPlayers(45)
-suspects=near
-if #near>0 then
-local top=near[1].p.Name
-LogBox.Text="SLAP RECEBIDO SUSPEITO "..top.." + "..(#near-1)
+local now=os.clock()
+local ranked={}
+for _,s in ipairs(near) do
+local sc=s.d
+local la=lastAnim[s.p.Name]
+if la and (now-la.t)<4 then sc=sc-100 end
+table.insert(ranked,{p=s.p,d=s.d,sc=sc})
+end
+table.sort(ranked,function(a,b) return a.sc<b.sc end)
+suspects={}
+for _,s in ipairs(ranked) do table.insert(suspects,{p=s.p,d=s.d}) end
+if #suspects>0 then
+local top=suspects[1].p.Name
+LogBox.Text="SLAP SUSPEITO "..top.." + "..(#suspects-1)
 table.insert(slapLog,top)
 else
 LogBox.Text="SLAP RECEBIDO SEM NINGUEM PERTO"
 end
 RefreshSuspects()
-if autoGuessOn and #near>0 then
-FireGuess(near[1].p)
-Notify("AUTO GUESS "..near[1].p.Name)
+if autoGuessOn and #suspects>0 then
+FireGuess(suspects[1].p)
+Notify("AUTO GUESS "..suspects[1].p.Name)
 end
 end
 TAuto.MouseButton1Click:Connect(function() autoGuessOn=not autoGuessOn SetTog(TAuto,TAD,autoGuessOn) Notify(autoGuessOn and "AUTO GUESS ON" or "AUTO GUESS OFF") end)
 BClear.MouseButton1Click:Connect(function() suspects={} slapLog={} LogBox.Text="LOG LIMPO" RefreshSuspects() end)
 BSlap.MouseButton1Click:Connect(function() FireSlapOnce() Notify("SLAP ENVIADO") end)
+BDodge.MouseButton1Click:Connect(function()
+dodgeOn=not dodgeOn
+SetTxt(BDodge,dodgeOn and "AUTO DODGE ON" or "AUTO DODGE OFF")
+SetBtn(BDodge,dodgeOn)
+Notify(dodgeOn and "DODGE ON" or "DODGE OFF")
+end)
 BPerfect.MouseButton1Click:Connect(function()
 perfectOn=not perfectOn
 SetTxt(BPerfect,perfectOn and "AUTO PERFECT ON" or "AUTO PERFECT OFF")
@@ -341,6 +386,51 @@ ev2.OnClientEvent:Connect(function()
 OnSlapped()
 end)
 end
+local evR=Ev("RunMeter")
+if evR then
+pcall(function()
+evR.OnClientEvent:Connect(function(on)
+if on then
+myTurn=true
+firedTurn=false
+Notify("SUA VEZ")
+if perfectOn then
+local evS=Ev("SendSlap")
+if evS then pcall(function() evS:FireServer(1) end) end
+end
+else
+myTurn=false
+firedTurn=false
+end
+end)
+end)
+end
+local evD=Ev("DodgePrompt")
+if evD then
+pcall(function()
+evD.OnClientEvent:Connect(function()
+if dodgeOn then
+local evDo=Ev("Dodge")
+if evDo then pcall(function() evDo:FireServer(true) end) end
+Notify("DODGE AUTO")
+end
+end)
+end)
+end
+for _,p in ipairs(Players:GetPlayers()) do
+if p.Character then HookAnims(p.Character,p) end
+end
+Players.PlayerAdded:Connect(function(p)
+p.CharacterAdded:Connect(function(c)
+task.wait(1)
+HookAnims(c,p)
+end)
+end)
+LP.CharacterAdded:Connect(function(c)
+task.wait(1)
+HookAnims(c,LP)
+end)
+if LP.Character then HookAnims(LP.Character,LP) end
 local ev3=Ev("Guess")
 if ev3 and (ev3:IsA("RemoteEvent") or ev3:IsA("RemoteFunction")) then
 pcall(function()
@@ -365,33 +455,6 @@ RefreshSuspects()
 if autoGuessOn then FireGuess(suspects[1].p) Notify("AUTO GUESS "..suspects[1].p.Name) end
 end
 end)
-end)
-end
-end)
-task.spawn(function()
-while task.wait(0.05) do
-pcall(function()
-if perfectOn then
-local pg=LP:FindFirstChildOfClass("PlayerGui")
-local bar=nil
-if pg then
-local sg=pg:FindFirstChild("ScreenGui")
-local mt=sg and sg:FindFirstChild("meter")
-local cl=mt and mt:FindFirstChild("color")
-bar=cl and cl:FindFirstChild("bar")
-end
-if bar and bar.Visible~=false then
-local mt2=bar.Parent and bar.Parent.Parent
-if not mt2 or mt2.Visible~=false then
-local y=bar.Position.Y.Scale
-if y>0.96 then
-local ev=Ev("SendSlap")
-if ev then ev:FireServer(1) end
-task.wait(0.6)
-end
-end
-end
-end
 end)
 end
 end)
@@ -425,6 +488,18 @@ if antiAfkOn then pcall(function() game:GetService("VirtualUser"):Button2Down(Ve
 end)
 RS.RenderStepped:Connect(function()
 PStroke.Color=RGB(tick())
+if perfectOn and myTurn and not firedTurn then
+local bar=GetBar()
+if bar then
+local y=bar.Position.Y.Scale
+if y>0.94 then
+firedTurn=true
+local ev=Ev("SendSlap")
+if ev then pcall(function() ev:FireServer(1) end) end
+Notify("PERFECT 1.0")
+end
+end
+end
 end)
 task.spawn(function()
 for i=0,100 do
