@@ -17,6 +17,7 @@ local function RGB(t)
 return Color3.fromRGB(math.floor(math.sin(t*1.8)*127+128),math.floor(math.sin(t*1.8+2.094)*127+128),math.floor(math.sin(t*1.8+4.189)*127+128))
 end
 local autoGuessOn=false
+local perfectOn=false
 local queueOn=false
 local forceVal=50
 local speedOn=false
@@ -216,6 +217,7 @@ TAuto,TAD=MakeRow(P1,"AUTO GUESS SUSPEITO",false)
 BClear=BigBtn(P1,"LIMPAR LOG")
 Section(P2,"QUANDO VOCE E O SLAPPER")
 BSlap=BigBtn(P2,"DAR SLAP AGORA")
+BPerfect=BigBtn(P2,"AUTO PERFECT OFF")
 BQueue=BigBtn(P2,"AUTO QUEUE OFF")
 BForce=BigBtn(P2,"FORCA 50")
 Section(P3,"MOVIMENTO")
@@ -264,6 +266,12 @@ end
 TAuto.MouseButton1Click:Connect(function() autoGuessOn=not autoGuessOn SetTog(TAuto,TAD,autoGuessOn) Notify(autoGuessOn and "AUTO GUESS ON" or "AUTO GUESS OFF") end)
 BClear.MouseButton1Click:Connect(function() suspects={} slapLog={} LogBox.Text="LOG LIMPO" RefreshSuspects() end)
 BSlap.MouseButton1Click:Connect(function() FireSlapOnce() Notify("SLAP ENVIADO") end)
+BPerfect.MouseButton1Click:Connect(function()
+perfectOn=not perfectOn
+SetTxt(BPerfect,perfectOn and "AUTO PERFECT ON" or "AUTO PERFECT OFF")
+SetBtn(BPerfect,perfectOn)
+Notify(perfectOn and "PERFECT ON" or "PERFECT OFF")
+end)
 BQueue.MouseButton1Click:Connect(function()
 queueOn=not queueOn
 SetTxt(BQueue,queueOn and "AUTO QUEUE ON" or "AUTO QUEUE OFF")
@@ -331,6 +339,59 @@ local ev2=Ev("ImpactEffect")
 if ev2 and ev2:IsA("RemoteEvent") then
 ev2.OnClientEvent:Connect(function()
 OnSlapped()
+end)
+end
+local ev3=Ev("Guess")
+if ev3 and (ev3:IsA("RemoteEvent") or ev3:IsA("RemoteFunction")) then
+pcall(function()
+ev3.OnClientEvent:Connect(function(list)
+if type(list)~="table" then return end
+local lr=Root(Char(LP))
+suspects={}
+for _,plr in ipairs(list) do
+if typeof(plr)=="Instance" and plr:IsA("Player") and plr~=LP then
+local d=999
+if lr then
+local r=Root(Char(plr))
+if r then d=(lr.Position-r.Position).Magnitude end
+end
+table.insert(suspects,{p=plr,d=d})
+end
+end
+table.sort(suspects,function(a,b) return a.d<b.d end)
+if #suspects>0 then
+LogBox.Text="SERVER MANDOU "..#suspects.." SUSPEITOS TOP "..suspects[1].p.Name
+RefreshSuspects()
+if autoGuessOn then FireGuess(suspects[1].p) Notify("AUTO GUESS "..suspects[1].p.Name) end
+end
+end)
+end)
+end
+end)
+task.spawn(function()
+while task.wait(0.05) do
+pcall(function()
+if perfectOn then
+local pg=LP:FindFirstChildOfClass("PlayerGui")
+local bar=nil
+if pg then
+local sg=pg:FindFirstChild("ScreenGui")
+local mt=sg and sg:FindFirstChild("meter")
+local cl=mt and mt:FindFirstChild("color")
+bar=cl and cl:FindFirstChild("bar")
+end
+if bar and bar.Visible~=false then
+local mt2=bar.Parent and bar.Parent.Parent
+if not mt2 or mt2.Visible~=false then
+local y=bar.Position.Y.Scale
+if y>0.96 then
+local ev=Ev("SendSlap")
+if ev then ev:FireServer(1) end
+task.wait(0.6)
+end
+end
+end
+end
 end)
 end
 end)
