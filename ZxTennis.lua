@@ -82,13 +82,14 @@ local bd=99999
 local lr=Root(Char())
 if not lr then return nil end
 for _,p in ipairs(Players:GetPlayers()) do
-if p==LP then continue end
+if p~=LP then
 local ch=p.Character
 local h=ch and ch:FindFirstChildOfClass("Humanoid")
 local r=ch and ch:FindFirstChild("HumanoidRootPart")
 if h and h.Health>0 and r then
 local d=(lr.Position-r.Position).Magnitude
 if d<bd then bd=d best=r end
+end
 end
 end
 return best
@@ -106,7 +107,11 @@ if cam then cp=cam.CFrame.Position cd=cam.CFrame.LookVector end
 if aimOpp then
 local lr=Root(ch)
 local op=Opp()
-if lr and op then cd=(op.Position-lr.Position).Unit end
+if lr and op then
+local tx=lr.Position.X*2-op.Position.X
+local target=Vector3.new(tx,op.Position.Y,op.Position.Z)
+cd=(target-lr.Position).Unit
+end
 end
 local hp=cp
 if ball then hp=ball.Position end
@@ -254,7 +259,7 @@ BAuto=BigBtn(P1,"AUTO HIT OFF")
 TSmart,TSD=MakeRow(P1,"SO NA MEDIDA",true)
 TSmash,TSMD=MakeRow(P1,"SMASH PULANDO",true)
 TAlways,TAD2=MakeRow(P1,"SMASH SEMPRE",true)
-TAim,TAD3=MakeRow(P1,"MIRAR ADVERSARIO",false)
+TAim,TAD3=MakeRow(P1,"LONGE ADVERSARIO",false)
 MakeSlider(P1,"ALCANCE",5,80,30,function(v) hitRange=v end)
 MakeSlider(P1,"PONTO DOCE",6,30,12,function(v) sweetSpot=v end)
 MakeSlider(P1,"TIPO HIT 0-3",0,3,1,function(v) hitType=math.floor(v) end)
@@ -290,7 +295,7 @@ end)
 TSmart.MouseButton1Click:Connect(function() smartHit=not smartHit SetTog(TSmart,TSD,smartHit) end)
 TSmash.MouseButton1Click:Connect(function() smashJump=not smashJump SetTog(TSmash,TSMD,smashJump) end)
 TAlways.MouseButton1Click:Connect(function() smashAlways=not smashAlways SetTog(TAlways,TAD2,smashAlways) end)
-TAim.MouseButton1Click:Connect(function() aimOpp=not aimOpp SetTog(TAim,TAD3,aimOpp) Notify(aimOpp and "MIRA ADVERSARIO" or "MIRA CAMERA") end)
+TAim.MouseButton1Click:Connect(function() aimOpp=not aimOpp SetTog(TAim,TAD3,aimOpp) Notify(aimOpp and "MIRA LONGE" or "MIRA CAMERA") end)
 BSaque.MouseButton1Click:Connect(function()
 serveOn=not serveOn
 SetTxt(BSaque,serveOn and "AUTO SERVE ON" or "AUTO SERVE OFF")
