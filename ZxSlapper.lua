@@ -98,8 +98,11 @@ return ok
 end
 local function FireSlapOnce()
 local ev=Ev("SendSlap")
-if not ev then return end
-pcall(function() ev:FireServer() end)
+if not ev then Notify("SEM SendSlap") return end
+local bar=GetBar()
+local v=1
+if bar then v=bar.Position.Y.Scale end
+pcall(function() ev:FireServer(v) end)
 end
 local function NearPlayers(maxd)
 local out={}
@@ -374,32 +377,40 @@ UIS.InputChanged:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserI
 UIS.InputEnded:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1) then dragPop=false if not moved then task.spawn(OpenMenu) end end end)
 UIS.JumpRequest:Connect(function() if jumpOn then local ch=Char(LP) if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end end end end)
 task.spawn(function()
+pcall(function()
+local rs=game:GetService("ReplicatedStorage")
+rs:WaitForChild("events",15)
+end)
+task.wait(1)
+local hookedShow=false
+local hookedImpact=false
+local hookedMeter=false
+local hookedGuess=false
+local hookedDodge=false
+for t=1,8 do
 local ev=Ev("ShowSlap")
-if ev and ev:IsA("RemoteEvent") then
+if ev and not hookedShow then
+hookedShow=true
 ev.OnClientEvent:Connect(function()
 OnSlapped()
 end)
 end
 local ev2=Ev("ImpactEffect")
-if ev2 and ev2:IsA("RemoteEvent") then
+if ev2 and not hookedImpact then
+hookedImpact=true
 ev2.OnClientEvent:Connect(function()
 OnSlapped()
 end)
 end
 local evR=Ev("RunMeter")
-if evR then
+if evR and not hookedMeter then
+hookedMeter=true
 pcall(function()
 evR.OnClientEvent:Connect(function(on)
 if on then
 myTurn=true
 firedTurn=false
 Notify("SUA VEZ")
-if perfectOn then
-local evS=Ev("SendSlap")
-if evS then pcall(function() evS:FireServer(1) end) end
-firedTurn=true
-task.delay(0.5,function() if myTurn then firedTurn=false end end)
-end
 else
 myTurn=false
 firedTurn=false
@@ -408,7 +419,8 @@ end)
 end)
 end
 local evD=Ev("DodgePrompt")
-if evD then
+if evD and not hookedDodge then
+hookedDodge=true
 pcall(function()
 evD.OnClientEvent:Connect(function()
 if dodgeOn then
@@ -418,6 +430,9 @@ Notify("DODGE AUTO")
 end
 end)
 end)
+end
+if hookedShow and hookedImpact and hookedMeter and hookedDodge then break end
+task.wait(2)
 end
 for _,p in ipairs(Players:GetPlayers()) do
 if p.Character then HookAnims(p.Character,p) end
@@ -490,16 +505,19 @@ if antiAfkOn then pcall(function() game:GetService("VirtualUser"):Button2Down(Ve
 end)
 RS.RenderStepped:Connect(function()
 PStroke.Color=RGB(tick())
-if perfectOn and myTurn and not firedTurn then
+if perfectOn and not firedTurn then
 local bar=GetBar()
 if bar then
 local y=bar.Position.Y.Scale
-if y>0.94 then
+if y>0.96 then
 firedTurn=true
 local ev=Ev("SendSlap")
-if ev then pcall(function() ev:FireServer(1) end) end
-Notify("PERFECT 1.0")
+if ev then pcall(function() ev:FireServer(y) end) end
+Notify("PERFECT "..math.floor(y*100))
+task.delay(1,function() firedTurn=false end)
 end
+else
+if myTurn==false then firedTurn=false end
 end
 end
 end)
