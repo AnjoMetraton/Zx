@@ -19,8 +19,10 @@ end
 local hitOn=false
 local smartHit=true
 local smashJump=false
-local hitType=0
+local smashAlways=true
+local hitType=1
 local hitRange=30
+local sweetSpot=12
 local serveOn=false
 local servePower=100
 local serveRot=0
@@ -228,7 +230,10 @@ Section(P1,"AUTO HIT")
 BAuto=BigBtn(P1,"AUTO HIT OFF")
 TSmart,TSD=MakeRow(P1,"SO NA MEDIDA",true)
 TSmash,TSMD=MakeRow(P1,"SMASH PULANDO",true)
+TAlways,TAD2=MakeRow(P1,"SMASH SEMPRE",true)
 MakeSlider(P1,"ALCANCE",5,80,30,function(v) hitRange=v end)
+MakeSlider(P1,"PONTO DOCE",6,30,12,function(v) sweetSpot=v end)
+MakeSlider(P1,"TIPO HIT 0-3",0,3,1,function(v) hitType=math.floor(v) end)
 Section(P1,"BOLA")
 BBall=BigBtn(P1,"BALL ESP OFF")
 BallInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,30),BackgroundColor3=Color3.fromRGB(5,10,6),BorderSizePixel=0,Text="BOLA -m",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(150,200,160),TextSize=11,Parent=P1})
@@ -260,6 +265,7 @@ Notify(hitOn and "AUTO HIT ON" or "AUTO HIT OFF")
 end)
 TSmart.MouseButton1Click:Connect(function() smartHit=not smartHit SetTog(TSmart,TSD,smartHit) end)
 TSmash.MouseButton1Click:Connect(function() smashJump=not smashJump SetTog(TSmash,TSMD,smashJump) end)
+TAlways.MouseButton1Click:Connect(function() smashAlways=not smashAlways SetTog(TAlways,TAD2,smashAlways) end)
 BSaque.MouseButton1Click:Connect(function()
 serveOn=not serveOn
 SetTxt(BSaque,serveOn and "AUTO SERVE ON" or "AUTO SERVE OFF")
@@ -319,7 +325,7 @@ UIS.InputChanged:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserI
 UIS.InputEnded:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1) then dragPop=false if not moved then task.spawn(OpenMenu) end end end)
 UIS.JumpRequest:Connect(function() if jumpOn then local ch=Char() if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end end end end)
 task.spawn(function()
-while task.wait(0.12) do
+while task.wait(0.05) do
 pcall(function()
 if hitOn then
 local ball,d=FindBall()
@@ -328,11 +334,17 @@ local hum=ch and ch:FindFirstChildOfClass("Humanoid")
 local jumping=false
 if hum then jumping=hum:GetState()==Enum.HumanoidStateType.Jumping or hum:GetState()==Enum.HumanoidStateType.Freefall end
 local tp=hitType
-if smashJump and jumping then tp=1 end
+if smashAlways then tp=1 end
+if smashJump and not jumping and ball and d and d<=sweetSpot+4 then
+if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+tp=1
+end
 if smartHit then
-if ball and d and d<=hitRange then DoHit(100,tp) end
-else
-DoHit(100,tp)
+if ball and d and d<=sweetSpot then
+for k=1,3 do DoHit(100,tp) end
+end
+elseif ball and d and d<=hitRange then
+for k=1,3 do DoHit(100,tp) end
 end
 end
 if serveOn then DoServe() task.wait(1.2) end
