@@ -17,13 +17,37 @@ local remoteList={}
 local localList={}
 local moduleList={}
 local scriptRefs={}
+local gameRefs={}
 local srcCache={}
 local srcStat="FONTES 0"
 local nilCount=0
 local execName="CONHECIDO"
 local detectInfo="AGUARDANDO"
-local sendStat="NAO ENVIADO"
 local sendStat="NAO SALVO"
+local remoteLog={}
+local animLog={}
+local guiLog={}
+local spyOn=true
+local function SkipScript(path)
+local p=string.lower(path)
+if string.find(p,"animate") then return true end
+if string.find(p,"ragdoll") then return true end
+if string.find(p,"playermodule") then return true end
+if string.find(p,"cameramodule") then return true end
+if string.find(p,"rbxcharacter") then return true end
+if string.find(p,"atomicbinding") then return true end
+if string.find(p,"firstperson") then return true end
+return false
+end
+local function GameScript(path)
+local p=string.lower(path)
+if string.find(p,"screengui") then return true end
+if string.find(p,"startergui") then return true end
+if string.find(p,"replicatedstorage") then return true end
+if string.find(p,"viewportdisplay") then return true end
+if string.find(p,"events") then return true end
+return false
+end
 SG=New("ScreenGui",{Name="ZxAnalyzer",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LP:WaitForChild("PlayerGui")})
 BG=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=10,Parent=SG})
 LCard=New("Frame",{Size=UDim2.new(0,300,0,170),Position=UDim2.new(0.5,-150,0.5,-85),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=12,Parent=BG})
@@ -63,7 +87,44 @@ local nils=getnilinstances()
 nilCount=#nils
 for _,d in ipairs(nils) do
 if d:IsA("LocalScript") or d:IsA("ModuleScript") then
-if #scriptRefs<250 then table.insert(scriptRefs,d) end
+if #scriptRefs<400 then table.insert(scriptRefs,d) end
+end
+end
+end
+end)
+pcall(function()
+if getscripts then
+local seen={}
+for _,d in ipairs(scriptRefs) do seen[d]=true end
+for _,d in ipairs(getscripts()) do
+if not seen[d] and (d:IsA("LocalScript") or d:IsA("ModuleScript") or d:IsA("Script")) then
+seen[d]=true
+if #scriptRefs<600 then table.insert(scriptRefs,d) end
+end
+end
+end
+end)
+pcall(function()
+if getrunningscripts then
+local seen={}
+for _,d in ipairs(scriptRefs) do seen[d]=true end
+for _,d in ipairs(getrunningscripts()) do
+if not seen[d] then
+seen[d]=true
+if #scriptRefs<600 then table.insert(scriptRefs,d) end
+end
+end
+end
+end)
+pcall(function()
+if getloadedmodules then
+local seen={}
+for _,d in ipairs(scriptRefs) do seen[d]=true end
+for _,d in ipairs(getloadedmodules()) do
+if type(d)=="table" then continue end
+if not seen[d] then
+seen[d]=true
+if #scriptRefs<600 then table.insert(scriptRefs,d) end
 end
 end
 end
@@ -76,12 +137,12 @@ if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") or d:IsA("BindableEvent") or 
 if #remoteList<150 then table.insert(remoteList,d:GetFullName()) end
 end
 if d:IsA("LocalScript") then
-if #localList<150 then table.insert(localList,d:GetFullName()) end
-if #scriptRefs<250 then table.insert(scriptRefs,d) end
+if #localList<300 then table.insert(localList,d:GetFullName()) end
+if #scriptRefs<600 then table.insert(scriptRefs,d) end
 end
 if d:IsA("ModuleScript") then
-if #moduleList<150 then table.insert(moduleList,d:GetFullName()) end
-if #scriptRefs<250 then table.insert(scriptRefs,d) end
+if #moduleList<300 then table.insert(moduleList,d:GetFullName()) end
+if #scriptRefs<600 then table.insert(scriptRefs,d) end
 end
 end
 end)
@@ -158,23 +219,51 @@ local function CopyScripts()
 srcCache={}
 local ok=0
 local fail=0
+local server=0
+local ordered={}
+for _,inst in ipairs(scriptRefs) do
+local path=""
+pcall(function() path=inst:GetFullName() end)
+if GameScript(path) and not SkipScript(path) then table.insert(ordered,inst) end
+end
+for _,inst in ipairs(scriptRefs) do
+local path=""
+pcall(function() path=inst:GetFullName() end)
+if not GameScript(path) and not SkipScript(path) then table.insert(ordered,inst) end
+end
+for _,inst in ipairs(scriptRefs) do
+local path=""
+pcall(function() path=inst:GetFullName() end)
+if SkipScript(path) then table.insert(ordered,inst) end
+end
 pcall(function()
 if makefolder and not isfolder("ZX_SCRIPTS") then makefolder("ZX_SCRIPTS") end
 end)
-for i,inst in ipairs(scriptRefs) do
-if i>80 then break end
+local manifest={}
+for i,inst in ipairs(ordered) do
+if i>150 then break end
 local nm="S"..i
-pcall(function() nm=inst:GetFullName():gsub("[^%w]","_"):sub(1,60) end)
+local path=nm
+pcall(function() path=inst:GetFullName() nm=path:gsub("[^%w]","_"):sub(1,60) end)
+local cls=""
+pcall(function() cls=inst.ClassName end)
+local isServer=(cls=="Script")
 local src=TryDecompile(inst)
 if type(src)=="string" and #src>20 then
 ok=ok+1
 srcCache[nm]=src:sub(1,6000)
 pcall(function()
-if writefile then writefile("ZX_SCRIPTS/"..nm..".lua",src:sub(1,30000)) end
+if writefile then writefile("ZX_SCRIPTS/"..nm..".lua",src:sub(1,60000)) end
 end)
-else fail=fail+1 end
+table.insert(manifest,{name=nm,path=path,st="OK"})
+else
+if isServer then server=server+1 table.insert(manifest,{name=nm,path=path,st="SERVER"}) else fail=fail+1 table.insert(manifest,{name=nm,path=path,st="FALHA"}) end
 end
-srcStat="FONTES "..ok.." FALHA "..fail
+end
+pcall(function()
+if writefile then writefile("ZX_MANIFEST.json",Http:JSONEncode({place=game.PlaceId,ok=ok,fail=fail,server=server,total=#ordered,items=manifest})) end
+end)
+srcStat="FONTES "..ok.." FALHA "..fail.." SERVER "..server
 SrcStat.Text=srcStat
 Notify(srcStat)
 return ok
@@ -240,6 +329,9 @@ BScan=BigBtn("ESCANEAR CLIENT")
 BSend=BigBtn("SALVAR LOCAL")
 BCopySrc=BigBtn("COPIAR SCRIPTS LOCAL")
 BSaveSrc=BigBtn("SALVAR FONTES LOCAL")
+BSpy=BigBtn("REMOTE SPY OFF")
+BAnim=BigBtn("ANIM SPY OFF")
+BGui=BigBtn("GUI SCAN")
 BCopy=BigBtn("COPIAR DUMP")
 BSave=BigBtn("SAVEINSTANCE CLIENT")
 Section("DUMP")
@@ -264,6 +356,111 @@ task.spawn(function() CopyScripts() end)
 end)
 BSaveSrc.MouseButton1Click:Connect(function()
 task.spawn(function() SendSources() end)
+end)
+local function SetTxt2(b,txt)
+for _,d in ipairs(b:GetDescendants()) do if d:IsA("TextLabel") then d.Text=txt end end
+end
+BSpy.MouseButton1Click:Connect(function()
+spyOn=not spyOn
+SetTxt2(BSpy,spyOn and "REMOTE SPY ON" or "REMOTE SPY OFF")
+Notify(spyOn and "SPY LIGADO" or "SPY DESLIGADO")
+end)
+BAnim.MouseButton1Click:Connect(function()
+task.spawn(function()
+local n=0
+for _,p in ipairs(Players:GetPlayers()) do
+local ch=p.Character
+if ch then
+local hum=ch:FindFirstChildOfClass("Humanoid")
+local an=hum and hum:FindFirstChildOfClass("Animator")
+if an then
+an.AnimationPlayed:Connect(function(tr)
+local id=""
+pcall(function() id=tr.Animation.AnimationId end)
+table.insert(animLog,{p=p.Name,id=id,t=os.time()})
+if #animLog>200 then table.remove(animLog,1) end
+end)
+n=n+1
+end
+end
+end
+pcall(function()
+if writefile then writefile("ZX_ANIMLOG.json",Http:JSONEncode(animLog)) end
+end)
+Notify("ANIM SPY "..n)
+end)
+end)
+task.spawn(function()
+pcall(function()
+local ev=game:GetService("ReplicatedStorage"):FindFirstChild("events")
+if ev then
+for _,r in ipairs(ev:GetDescendants()) do
+if r:IsA("RemoteEvent") then
+r.OnClientEvent:Connect(function(...)
+if not spyOn then return end
+local a={...}
+local s=r.Name.." "
+for i,v in ipairs(a) do
+if i>4 then break end
+s=s..type(v).." "
+end
+table.insert(remoteLog,{n=r.Name,a=s,t=os.time()})
+if #remoteLog>200 then table.remove(remoteLog,1) end
+end)
+end
+end
+end
+end)
+pcall(function()
+local old=hookmetamethod and hookmetamethod(game,"__namecall",function() end)
+if old then hookmetamethod(game,"__namecall",old) end
+local mt=getrawmetatable and getrawmetatable(game)
+if mt then
+setreadonly(mt,false)
+local oldName=mt.__namecall
+mt.__namecall=newcclosure(function(self,...)
+local m=getnamecallmethod and getnamecallmethod() or ""
+if spyOn and (m=="FireServer" or m=="InvokeServer") then
+pcall(function()
+if self and self.Parent and self.Parent.Name=="events" then
+table.insert(remoteLog,{n=self.Name,m=m,t=os.time()})
+if #remoteLog>200 then table.remove(remoteLog,1) end
+end
+end)
+end
+return oldName(self,...)
+end)
+setreadonly(mt,true)
+end
+end)
+task.spawn(function()
+while task.wait(5) do
+if spyOn and #remoteLog>0 then
+pcall(function()
+if writefile then writefile("ZX_REMOTELOG.json",Http:JSONEncode(remoteLog)) end
+end)
+end
+end
+end)
+end)
+BGui.MouseButton1Click:Connect(function()
+task.spawn(function()
+guiLog={}
+pcall(function()
+for _,d in ipairs(LP:WaitForChild("PlayerGui"):GetDescendants()) do
+if d:IsA("TextButton") or d:IsA("TextLabel") or d:IsA("TextBox") then
+local tx=""
+pcall(function() tx=d.Text:sub(1,60) end)
+if #guiLog<200 then table.insert(guiLog,d:GetFullName().." "..tx) end
+end
+end
+end)
+pcall(function()
+if writefile then writefile("ZX_GUILOG.json",Http:JSONEncode(guiLog)) end
+end)
+DumpBox.Text=table.concat(guiLog,"\n"):sub(1,6000)
+Notify("GUI "..#guiLog)
+end)
 end)
 BCopy.MouseButton1Click:Connect(function()
 if setclipboard and scanTxt~="" then setclipboard(scanTxt:sub(1,15000)) Notify("DUMP COPIADO") else Notify("ESCANEIE PRIMEIRO") end
