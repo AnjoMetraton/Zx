@@ -61,22 +61,22 @@ local tb=ClassTeam(nb)
 if not tb then return false end
 return myTeam==tb
 end
-local SG=New("ScreenGui",{Name="ZxDestruction",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LP:WaitForChild("PlayerGui")})
-local BG=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=10,Parent=SG})
-local LCard=New("Frame",{Size=UDim2.new(0,310,0,220),Position=UDim2.new(0.5,-155,0.5,-110),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=12,Parent=BG})
+SG=New("ScreenGui",{Name="ZxDestruction",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LP:WaitForChild("PlayerGui")})
+BG=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=10,Parent=SG})
+LCard=New("Frame",{Size=UDim2.new(0,310,0,220),Position=UDim2.new(0.5,-155,0.5,-110),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=12,Parent=BG})
 New("UICorner",{CornerRadius=UDim.new(0,14),Parent=LCard})
-local LS=New("UIStroke",{Color=Color3.fromRGB(120,0,255),Thickness=1.5,Transparency=0.15,Parent=LCard})
-local LSym=New("TextLabel",{Size=UDim2.new(1,0,0,36),Position=UDim2.new(0,0,0,12),BackgroundTransparency=1,Text="ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=26,ZIndex=13,Parent=LCard})
-local LTitle=New("TextLabel",{Size=UDim2.new(1,0,0,28),Position=UDim2.new(0,0,0,50),BackgroundTransparency=1,Text="ZX DESTRUCTION V2",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=19,ZIndex=13,Parent=LCard})
+LS=New("UIStroke",{Color=Color3.fromRGB(120,0,255),Thickness=1.5,Transparency=0.15,Parent=LCard})
+LSym=New("TextLabel",{Size=UDim2.new(1,0,0,36),Position=UDim2.new(0,0,0,12),BackgroundTransparency=1,Text="ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=26,ZIndex=13,Parent=LCard})
+LTitle=New("TextLabel",{Size=UDim2.new(1,0,0,28),Position=UDim2.new(0,0,0,50),BackgroundTransparency=1,Text="ZX DESTRUCTION V2",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=19,ZIndex=13,Parent=LCard})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,80,255)),ColorSequenceKeypoint.new(0.5,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,200,255))}),Parent=LTitle})
-local LSub=New("TextLabel",{Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,80),BackgroundTransparency=1,Text="OTIMIZADO PARA CELULAR",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(100,60,180),TextSize=10,ZIndex=13,Parent=LCard})
-local LBTrack=New("Frame",{Size=UDim2.new(0.82,0,0,4),Position=UDim2.new(0.09,0,0,112),BackgroundColor3=Color3.fromRGB(8,5,15),BorderSizePixel=0,ZIndex=13,Parent=LCard})
+LSub=New("TextLabel",{Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,80),BackgroundTransparency=1,Text="OTIMIZADO PARA CELULAR",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(100,60,180),TextSize=10,ZIndex=13,Parent=LCard})
+LBTrack=New("Frame",{Size=UDim2.new(0.82,0,0,4),Position=UDim2.new(0.09,0,0,112),BackgroundColor3=Color3.fromRGB(8,5,15),BorderSizePixel=0,ZIndex=13,Parent=LCard})
 New("UICorner",{CornerRadius=UDim.new(0,2),Parent=LBTrack})
-local LBFill=New("Frame",{Size=UDim2.new(0,0,1,0),BackgroundColor3=Color3.fromRGB(120,0,255),BorderSizePixel=0,ZIndex=14,Parent=LBTrack})
+LBFill=New("Frame",{Size=UDim2.new(0,0,1,0),BackgroundColor3=Color3.fromRGB(120,0,255),BorderSizePixel=0,ZIndex=14,Parent=LBTrack})
 New("UICorner",{CornerRadius=UDim.new(0,2),Parent=LBFill})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(100,0,200)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,210,255))}),Parent=LBFill})
-local LPct=New("TextLabel",{Size=UDim2.new(1,0,0,18),Position=UDim2.new(0,0,0,124),BackgroundTransparency=1,Text="0%",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=12,ZIndex=13,Parent=LCard})
-local LStat=New("TextLabel",{Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,148),BackgroundTransparency=1,Text="CARREGANDO",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(70,45,110),TextSize=10,ZIndex=13,Parent=LCard})
+LPct=New("TextLabel",{Size=UDim2.new(1,0,0,18),Position=UDim2.new(0,0,0,124),BackgroundTransparency=1,Text="0%",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=12,ZIndex=13,Parent=LCard})
+LStat=New("TextLabel",{Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,148),BackgroundTransparency=1,Text="CARREGANDO",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(70,45,110),TextSize=10,ZIndex=13,Parent=LCard})
 local aimOn=false
 local aimFixOn=false
 local rgbCircleOn=false
@@ -144,24 +144,24 @@ local flyDown=false
 local flyBV=nil
 local flyGyro=nil
 local origLight={}
-local Circle=nil
-local CircleStroke=nil
-local CircleFill=nil
-local Cross=nil
-local CH1=nil
-local CH2=nil
-local CDot=nil
-local LockF=nil
+Circle=nil
+CircleStroke=nil
+CircleFill=nil
+Cross=nil
+CH1=nil
+CH2=nil
+CDot=nil
+LockF=nil
 local lockBars={}
-local LockDot=nil
-local HBLab=nil
-local FpsLab=nil
-local TracerHold=nil
-local AimBtn=nil
-local Pop=nil
-local Panel=nil
-local Nh=New("Frame",{Size=UDim2.new(0,270,0,320),Position=UDim2.new(0.5,-135,0.78,0),BackgroundTransparency=1,BorderSizePixel=0,Parent=SG})
-local Nlist={}
+LockDot=nil
+HBLab=nil
+FpsLab=nil
+TracerHold=nil
+AimBtn=nil
+Pop=nil
+Panel=nil
+Nh=New("Frame",{Size=UDim2.new(0,270,0,320),Position=UDim2.new(0.5,-135,0.78,0),BackgroundTransparency=1,BorderSizePixel=0,Parent=SG})
+Nlist={}
 local function Notify(txt)
 if not showNotif then return end
 if #Nlist>=4 then
@@ -223,25 +223,25 @@ return false
 end
 Panel=New("Frame",{Size=UDim2.new(0,335,0,540),Position=UDim2.new(0.5,-167,0.5,1200),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ClipsDescendants=true,Visible=false,Parent=SG})
 New("UICorner",{CornerRadius=UDim.new(0,16),Parent=Panel})
-local PStroke=New("UIStroke",{Color=Color3.fromRGB(100,0,220),Thickness=1.8,Transparency=0.15,Parent=Panel})
+PStroke=New("UIStroke",{Color=Color3.fromRGB(100,0,220),Thickness=1.8,Transparency=0.15,Parent=Panel})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(8,4,18)),ColorSequenceKeypoint.new(1,Color3.new(0,0,0))}),Rotation=135,Parent=Panel})
-local PAcc=New("Frame",{Size=UDim2.new(0.5,0,0,2),Position=UDim2.new(0.25,0,0,0),BackgroundColor3=Color3.fromRGB(140,0,255),BorderSizePixel=0,Parent=Panel})
+PAcc=New("Frame",{Size=UDim2.new(0.5,0,0,2),Position=UDim2.new(0.25,0,0,0),BackgroundColor3=Color3.fromRGB(140,0,255),BorderSizePixel=0,Parent=Panel})
 New("UICorner",{CornerRadius=UDim.new(0,2),Parent=PAcc})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,0,255)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(0,180,255)),ColorSequenceKeypoint.new(1,Color3.fromRGB(180,0,255))}),Parent=PAcc})
-local TopBar=New("Frame",{Size=UDim2.new(1,0,0,52),BackgroundColor3=Color3.new(0,0,0),Parent=Panel})
+TopBar=New("Frame",{Size=UDim2.new(1,0,0,52),BackgroundColor3=Color3.new(0,0,0),Parent=Panel})
 New("UICorner",{CornerRadius=UDim.new(0,16),Parent=TopBar})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(12,5,28)),ColorSequenceKeypoint.new(1,Color3.new(0,0,0))}),Rotation=90,Parent=TopBar})
 New("TextLabel",{Size=UDim2.new(0,28,1,0),Position=UDim2.new(0,12,0,0),BackgroundTransparency=1,Text="ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=15,Parent=TopBar})
 New("TextLabel",{Size=UDim2.new(1,-110,1,0),Position=UDim2.new(0,40,0,0),BackgroundTransparency=1,Text="ZX DESTRUCTION",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=15,TextXAlignment=Enum.TextXAlignment.Left,Parent=TopBar})
-local MinBtn=New("TextButton",{Size=UDim2.new(0,30,0,30),Position=UDim2.new(1,-78,0.5,-15),BackgroundColor3=Color3.fromRGB(18,5,35),BorderSizePixel=0,Text="-",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(180,80,255),TextSize=16,Parent=TopBar})
+MinBtn=New("TextButton",{Size=UDim2.new(0,30,0,30),Position=UDim2.new(1,-78,0.5,-15),BackgroundColor3=Color3.fromRGB(18,5,35),BorderSizePixel=0,Text="-",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(180,80,255),TextSize=16,Parent=TopBar})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=MinBtn})
 New("UIStroke",{Color=Color3.fromRGB(80,0,160),Thickness=1.2,Parent=MinBtn})
-local CloseBtn=New("TextButton",{Size=UDim2.new(0,30,0,30),Position=UDim2.new(1,-42,0.5,-15),BackgroundColor3=Color3.fromRGB(18,5,35),BorderSizePixel=0,Text="X",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(180,80,255),TextSize=13,Parent=TopBar})
+CloseBtn=New("TextButton",{Size=UDim2.new(0,30,0,30),Position=UDim2.new(1,-42,0.5,-15),BackgroundColor3=Color3.fromRGB(18,5,35),BorderSizePixel=0,Text="X",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(180,80,255),TextSize=13,Parent=TopBar})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=CloseBtn})
 New("UIStroke",{Color=Color3.fromRGB(80,0,160),Thickness=1.2,Parent=CloseBtn})
-local TabBar=New("Frame",{Size=UDim2.new(1,0,0,38),Position=UDim2.new(0,0,0,52),BackgroundTransparency=1,Parent=Panel})
-local TabBtns={}
-local Pages={}
+TabBar=New("Frame",{Size=UDim2.new(1,0,0,38),Position=UDim2.new(0,0,0,52),BackgroundTransparency=1,Parent=Panel})
+TabBtns={}
+Pages={}
 local tabNames={"LUTA","VISUAL","PLAYER","CONFIG"}
 for i,nm in ipairs(tabNames) do
 local b=New("TextButton",{Size=UDim2.new(0.23,0,0,30),Position=UDim2.new(0.015 + (i-1)*0.247,0,0,4),BackgroundColor3=i==1 and Color3.fromRGB(22,0,44) or Color3.fromRGB(8,5,15),BorderSizePixel=0,Text=nm,Font=Enum.Font.GothamBold,TextColor3=i==1 and Color3.fromRGB(200,140,255) or Color3.fromRGB(120,110,140),TextSize=11,Parent=TabBar})
@@ -354,14 +354,14 @@ if drag and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.
 end)
 return outer
 end
-local P1=Pages[1]
-local P2=Pages[2]
-local P3=Pages[3]
-local P4=Pages[4]
+P1=Pages[1]
+P2=Pages[2]
+P3=Pages[3]
+P4=Pages[4]
 Section(P1,"MIRA PRINCIPAL")
-local BAim=MakeBtn(P1,"MIRA OFF",false)
-local BFix=MakeBtn(P1,"AIMBOT FIX OFF",false)
-local BCircle=MakeBtn(P1,"RGB CIRCULO OFF",false)
+BAim=MakeBtn(P1,"MIRA OFF",false)
+BFix=MakeBtn(P1,"AIMBOT FIX OFF",false)
+BCircle=MakeBtn(P1,"RGB CIRCULO OFF",false)
 Section(P1,"AJUSTES DE MIRA")
 MakeSlider(P1,"RAIO FOV",10,800,120,function(v) circleRadius=v Circle.Size=UDim2.new(0,v*2,0,v*2) Circle.Position=UDim2.new(0.5,-v,0.5,-v) end)
 MakeSlider(P1,"SUAVIDADE",1,100,20,function(v) smoothVal=v end)
@@ -391,24 +391,24 @@ Notify("ALVO "..pn:upper())
 end)
 end
 Section(P1,"FILTROS DESTRUCTION")
-local TFov,TDFov=MakeRow(P1,"CHECAR FOV",true)
-local TSticky,TDSticky=MakeRow(P1,"STICKY LOCK",true)
-local TShowFov,TDShowFov=MakeRow(P1,"MOSTRAR FOV",true)
-local TTeam,TDTeam=MakeRow(P1,"IGNORAR TIME",true)
-local TWall,TDWall=MakeRow(P1,"WALLCHECK",false)
-local TMode,TDMode=MakeRow(P1,"ALVO MENOR HP",false)
-local TFloat,DFTFloat=MakeRow(P1,"BOTAO AIM FLUTUANTE",true)
+TFov,TDFov=MakeRow(P1,"CHECAR FOV",true)
+TSticky,TDSticky=MakeRow(P1,"STICKY LOCK",true)
+TShowFov,TDShowFov=MakeRow(P1,"MOSTRAR FOV",true)
+TTeam,TDTeam=MakeRow(P1,"IGNORAR TIME",true)
+TWall,TDWall=MakeRow(P1,"WALLCHECK",false)
+TMode,TDMode=MakeRow(P1,"ALVO MENOR HP",false)
+TFloat,DFTFloat=MakeRow(P1,"BOTAO AIM FLUTUANTE",true)
 Section(P2,"ESP MASTER")
-local BEsp=MakeBtn(P2,"ESP OFF",false)
-local BRgbEsp=MakeBtn(P2,"RGB ESP OFF",false)
-local BRgbName=MakeBtn(P2,"NOME RGB OFF",false)
+BEsp=MakeBtn(P2,"ESP OFF",false)
+BRgbEsp=MakeBtn(P2,"RGB ESP OFF",false)
+BRgbName=MakeBtn(P2,"NOME RGB OFF",false)
 Section(P2,"TIPOS DE ESP")
-local TBox,TDBox=MakeRow(P2,"BOX CHAMS",true)
-local TName,TDName=MakeRow(P2,"NOME",true)
-local TDist,TDDist=MakeRow(P2,"DISTANCIA",true)
-local THp,TDHp=MakeRow(P2,"BARRA DE VIDA",true)
-local TTrace,TDTrace=MakeRow(P2,"TRACER LINHA",false)
-local TEnemy,TDEnemy=MakeRow(P2,"APENAS INIMIGOS",true)
+TBox,TDBox=MakeRow(P2,"BOX CHAMS",true)
+TName,TDName=MakeRow(P2,"NOME",true)
+TDist,TDDist=MakeRow(P2,"DISTANCIA",true)
+THp,TDHp=MakeRow(P2,"BARRA DE VIDA",true)
+TTrace,TDTrace=MakeRow(P2,"TRACER LINHA",false)
+TEnemy,TDEnemy=MakeRow(P2,"APENAS INIMIGOS",true)
 Section(P2,"AJUSTES ESP")
 MakeSlider(P2,"TRANSPARENCIA",0,90,50,function(v) espTrans=v/100 end)
 MakeSlider(P2,"DIST MAX ESP",100,5000,1500,function(v) espMaxDist=v end)
@@ -424,67 +424,67 @@ New("UICorner",{CornerRadius=UDim.new(0.5,0),Parent=cb})
 cb.MouseButton1Click:Connect(function() espColor=c rgbEspOn=false SetBtn(BRgbEsp,false) SetTxt(BRgbEsp,"RGB ESP OFF") Notify("COR ESP ALTERADA") end)
 end
 Section(P3,"HITBOX")
-local HBRowT,HBRowD=MakeRow(P3,"HITBOX",false)
+HBRowT,HBRowD=MakeRow(P3,"HITBOX",false)
 MakeSlider(P3,"TAMANHO HITBOX",1,20,1,function(v) hitboxSize=v HBLab.Text="HITBOX "..v.."x" end)
 HBLab=New("TextLabel",{Size=UDim2.new(0.92,0,0,18),BackgroundTransparency=1,Text="HITBOX 1x",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(130,90,210),TextSize=11,Parent=P3})
-local HRgb,HRgbD=MakeRow(P3,"RGB BORDA HITBOX",false)
+HRgb,HRgbD=MakeRow(P3,"RGB BORDA HITBOX",false)
 Section(P3,"MOVIMENTO CELULAR")
-local TFly,TFlyD=MakeRow(P3,"FLY",false)
+TFly,TFlyD=MakeRow(P3,"FLY",false)
 MakeSlider(P3,"VEL FLY",10,200,50,function(v) flySpeed=v end)
-local FlyCtr=New("Frame",{Size=UDim2.new(0.92,0,0,44),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Parent=P3})
+FlyCtr=New("Frame",{Size=UDim2.new(0.92,0,0,44),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Parent=P3})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=FlyCtr})
 New("UIStroke",{Color=Color3.fromRGB(28,16,50),Thickness=1,Parent=FlyCtr})
-local BUp=New("TextButton",{Size=UDim2.new(0.46,0,0,30),Position=UDim2.new(0.02,0,0.5,-15),BackgroundColor3=Color3.fromRGB(22,0,44),BorderSizePixel=0,Text="SUBIR",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=12,AutoButtonColor=false,Parent=FlyCtr})
+BUp=New("TextButton",{Size=UDim2.new(0.46,0,0,30),Position=UDim2.new(0.02,0,0.5,-15),BackgroundColor3=Color3.fromRGB(22,0,44),BorderSizePixel=0,Text="SUBIR",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=12,AutoButtonColor=false,Parent=FlyCtr})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=BUp})
-local BDown=New("TextButton",{Size=UDim2.new(0.46,0,0,30),Position=UDim2.new(0.52,0,0.5,-15),BackgroundColor3=Color3.fromRGB(22,0,44),BorderSizePixel=0,Text="DESCER",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=12,AutoButtonColor=false,Parent=FlyCtr})
+BDown=New("TextButton",{Size=UDim2.new(0.46,0,0,30),Position=UDim2.new(0.52,0,0.5,-15),BackgroundColor3=Color3.fromRGB(22,0,44),BorderSizePixel=0,Text="DESCER",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=12,AutoButtonColor=false,Parent=FlyCtr})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=BDown})
-local TSpeed,TSpeedD=MakeRow(P3,"SPEED",false)
+TSpeed,TSpeedD=MakeRow(P3,"SPEED",false)
 MakeSlider(P3,"VALOR SPEED",16,150,24,function(v) speedVal=v end)
-local TInf,TInfD=MakeRow(P3,"PULO INFINITO",false)
+TInf,TInfD=MakeRow(P3,"PULO INFINITO",false)
 MakeSlider(P3,"FORCA PULO",20,200,50,function(v) jumpPower=v local ch=LP.Character if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h.JumpPower=v end end end)
-local TNoc,TNocD=MakeRow(P3,"NOCLIP",false)
-local TSpin,TSpinD=MakeRow(P3,"SPIN",false)
+TNoc,TNocD=MakeRow(P3,"NOCLIP",false)
+TSpin,TSpinD=MakeRow(P3,"SPIN",false)
 MakeSlider(P3,"VEL SPIN",5,100,20,function(v) spinSpeed=v end)
 Section(P3,"MUNDO")
-local TAfk,TAfkD=MakeRow(P3,"ANTI AFK",false)
-local TFb,TFbD=MakeRow(P3,"FULLBRIGHT",false)
-local TFps,TFpsD=MakeRow(P3,"FPS BOOST",false)
+TAfk,TAfkD=MakeRow(P3,"ANTI AFK",false)
+TFb,TFbD=MakeRow(P3,"FULLBRIGHT",false)
+TFps,TFpsD=MakeRow(P3,"FPS BOOST",false)
 MakeSlider(P3,"FOV CAMERA",40,120,70,function(v) camFov=v local c=workspace.CurrentCamera if c then c.FieldOfView=v end end)
-local TVoid,TVoidD=MakeRow(P3,"ANTI VOID",false)
+TVoid,TVoidD=MakeRow(P3,"ANTI VOID",false)
 Section(P4,"MEU TIME AUTO")
-local TAuto,TDAuto=MakeRow(P4,"AUTO DETECT TIME",true)
-local TeamRow=New("Frame",{Size=UDim2.new(0.92,0,0,44),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Parent=P4})
+TAuto,TDAuto=MakeRow(P4,"AUTO DETECT TIME",true)
+TeamRow=New("Frame",{Size=UDim2.new(0.92,0,0,44),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Parent=P4})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=TeamRow})
 New("UIStroke",{Color=Color3.fromRGB(28,16,50),Thickness=1,Parent=TeamRow})
-local TRed=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.02,0,0.5,-15),BackgroundColor3=Color3.fromRGB(35,5,5),BorderSizePixel=0,Text="VERMELHO",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(229,72,72),TextSize=10,AutoButtonColor=false,Parent=TeamRow})
+TRed=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.02,0,0.5,-15),BackgroundColor3=Color3.fromRGB(35,5,5),BorderSizePixel=0,Text="VERMELHO",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(229,72,72),TextSize=10,AutoButtonColor=false,Parent=TeamRow})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=TRed})
-local TBlue=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.35,0,0.5,-15),BackgroundColor3=Color3.fromRGB(5,12,35),BorderSizePixel=0,Text="AZUL",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(72,171,229),TextSize=10,AutoButtonColor=false,Parent=TeamRow})
+TBlue=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.35,0,0.5,-15),BackgroundColor3=Color3.fromRGB(5,12,35),BorderSizePixel=0,Text="AZUL",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(72,171,229),TextSize=10,AutoButtonColor=false,Parent=TeamRow})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=TBlue})
-local TClear=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.68,0,0.5,-15),BackgroundColor3=Color3.fromRGB(12,12,18),BorderSizePixel=0,Text="LIMPAR",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,160,170),TextSize=10,AutoButtonColor=false,Parent=TeamRow})
+TClear=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.68,0,0.5,-15),BackgroundColor3=Color3.fromRGB(12,12,18),BorderSizePixel=0,Text="LIMPAR",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,160,170),TextSize=10,AutoButtonColor=false,Parent=TeamRow})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=TClear})
 Section(P4,"MIRA TELA")
-local TCross,TCrossD=MakeRow(P4,"CROSSHAIR",true)
-local TRgbC,TRgbCD=MakeRow(P4,"RGB CROSSHAIR",false)
-local TDot,TDotD=MakeRow(P4,"PONTO CENTRAL",true)
+TCross,TCrossD=MakeRow(P4,"CROSSHAIR",true)
+TRgbC,TRgbCD=MakeRow(P4,"RGB CROSSHAIR",false)
+TDot,TDotD=MakeRow(P4,"PONTO CENTRAL",true)
 MakeSlider(P4,"TAM CROSS",10,50,22,function(v) crossSize=v Cross.Size=UDim2.new(0,v,0,v) Cross.Position=UDim2.new(0.5,-v/2,0.5,-v/2) end)
-local TRgbL,TRgbLD=MakeRow(P4,"RGB LOCK",false)
+TRgbL,TRgbLD=MakeRow(P4,"RGB LOCK",false)
 MakeSlider(P4,"TAM LOCK",30,120,52,function(v) lockSize=v LockF.Size=UDim2.new(0,v,0,v) end)
 Section(P4,"PAINEL CELULAR")
 MakeSlider(P4,"TRANS PAINEL",0,60,0,function(v) panelTrans=v/100 Panel.BackgroundTransparency=v/100 TopBar.BackgroundTransparency=v/100 end)
-local SizeRow=New("Frame",{Size=UDim2.new(0.92,0,0,44),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Parent=P4})
+SizeRow=New("Frame",{Size=UDim2.new(0.92,0,0,44),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Parent=P4})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=SizeRow})
 New("UIStroke",{Color=Color3.fromRGB(28,16,50),Thickness=1,Parent=SizeRow})
-local BS=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.02,0,0.5,-15),BackgroundColor3=Color3.fromRGB(15,8,30),BorderSizePixel=0,Text="PEQUENO",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=9,AutoButtonColor=false,Parent=SizeRow})
+BS=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.02,0,0.5,-15),BackgroundColor3=Color3.fromRGB(15,8,30),BorderSizePixel=0,Text="PEQUENO",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=9,AutoButtonColor=false,Parent=SizeRow})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=BS})
-local BM=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.35,0,0.5,-15),BackgroundColor3=Color3.fromRGB(15,8,30),BorderSizePixel=0,Text="NORMAL",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=9,AutoButtonColor=false,Parent=SizeRow})
+BM=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.35,0,0.5,-15),BackgroundColor3=Color3.fromRGB(15,8,30),BorderSizePixel=0,Text="NORMAL",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=9,AutoButtonColor=false,Parent=SizeRow})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=BM})
-local BL=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.68,0,0.5,-15),BackgroundColor3=Color3.fromRGB(15,8,30),BorderSizePixel=0,Text="GRANDE",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=9,AutoButtonColor=false,Parent=SizeRow})
+BL=New("TextButton",{Size=UDim2.new(0.3,0,0,30),Position=UDim2.new(0.68,0,0.5,-15),BackgroundColor3=Color3.fromRGB(15,8,30),BorderSizePixel=0,Text="GRANDE",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=9,AutoButtonColor=false,Parent=SizeRow})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=BL})
-local TFpsShow,TFpsShowD=MakeRow(P4,"MOSTRAR FPS",true)
-local TNotif,TNotifD=MakeRow(P4,"NOTIFICACOES",true)
-local TStealth,TStealthD=MakeRow(P4,"STEALTH",false)
-local BKeys=MakeBtn(P4,"ALTERAR TECLAS",false)
-local BReset=MakeBtn(P4,"RESETAR TUDO",false)
+TFpsShow,TFpsShowD=MakeRow(P4,"MOSTRAR FPS",true)
+TNotif,TNotifD=MakeRow(P4,"NOTIFICACOES",true)
+TStealth,TStealthD=MakeRow(P4,"STEALTH",false)
+BKeys=MakeBtn(P4,"ALTERAR TECLAS",false)
+BReset=MakeBtn(P4,"RESETAR TUDO",false)
 Circle=New("Frame",{Size=UDim2.new(0,240,0,240),Position=UDim2.new(0.5,-120,0.5,-120),BackgroundTransparency=1,BorderSizePixel=0,Visible=false,Parent=SG})
 New("UICorner",{CornerRadius=UDim.new(0.5,0),Parent=Circle})
 CircleStroke=New("UIStroke",{Color=Color3.fromRGB(120,0,255),Thickness=1.5,Transparency=0.25,Parent=Circle})
