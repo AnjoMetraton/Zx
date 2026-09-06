@@ -229,7 +229,7 @@ TSmash,TSMD=MakeRow(P1,"SMASH PULANDO",true)
 MakeSlider(P1,"ALCANCE",5,80,30,function(v) hitRange=v end)
 Section(P1,"BOLA")
 BBall=BigBtn(P1,"BALL ESP OFF")
-BallInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,30),BackgroundColor3=Color3.fromRGB(5,10,6),BorderSizePixel=0,Text="BOLA --m",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(150,200,160),TextSize=11,Parent=P1})
+BallInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,30),BackgroundColor3=Color3.fromRGB(5,10,6),BorderSizePixel=0,Text="BOLA -m",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(150,200,160),TextSize=11,Parent=P1})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=BallInfo})
 Section(P2,"SAQUE AUTO")
 BSaque=BigBtn(P2,"AUTO SERVE OFF")
@@ -344,7 +344,7 @@ ballHl.Parent=ball
 end
 end
 else
-BallInfo.Text="BOLA --m"
+BallInfo.Text="BOLA -m"
 if ballHl then pcall(function() ballHl:Destroy() end) ballHl=nil end
 end
 end)
