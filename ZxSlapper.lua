@@ -16,12 +16,8 @@ end
 local function RGB(t)
 return Color3.fromRGB(math.floor(math.sin(t*1.8)*127+128),math.floor(math.sin(t*1.8+2.094)*127+128),math.floor(math.sin(t*1.8+4.189)*127+128))
 end
-local auraOn=false
-local auraRange=18
-local auraDelay=0.35
-local spamOn=false
+local autoGuessOn=false
 local queueOn=false
-local guessOn=false
 local forceVal=50
 local speedOn=false
 local speedVal=26
@@ -36,6 +32,8 @@ local origB=nil
 local origC=nil
 local flyBV=nil
 local flyGyro=nil
+local suspects={}
+local slapLog={}
 local function Ev(n)
 local ok,r=pcall(function()
 local rs=game:GetService("ReplicatedStorage")
@@ -59,38 +57,35 @@ if not ch then return false end
 local h=ch:FindFirstChildOfClass("Humanoid")
 return h and h.Health>0
 end
-local function FireSlap(target)
-local ev=Ev("SendSlap")
-if not ev then return end
-local ch=Char(target)
-local hrp=ch and ch:FindFirstChild("HumanoidRootPart")
-pcall(function() ev:FireServer(hrp) end)
-pcall(function() ev:FireServer(target) end)
-pcall(function() ev:FireServer(ch) end)
-pcall(function() ev:FireServer(target.Name) end)
-end
 local function FireGuess(target)
 local ev=Ev("Guess")
-if not ev then return end
-pcall(function() ev:FireServer(target) end)
-pcall(function() ev:FireServer(target.Name) end)
+if not ev then return false end
+local ok=false
+pcall(function() ev:FireServer(target) ok=true end)
+pcall(function() ev:FireServer(target.Name) ok=true end)
 local ch=Char(target)
-if ch then pcall(function() ev:FireServer(ch) end) end
+if ch then pcall(function() ev:FireServer(ch) ok=true end) end
+return ok
 end
-local function Nearest(maxd)
-local best=nil
-local bd=maxd or 9999
+local function FireSlapOnce()
+local ev=Ev("SendSlap")
+if not ev then return end
+pcall(function() ev:FireServer() end)
+end
+local function NearPlayers(maxd)
+local out={}
 local lr=Root(Char(LP))
-if not lr then return nil end
+if not lr then return out end
 for _,p in ipairs(Players:GetPlayers()) do
 if p==LP then continue end
 if not Alive(p) then continue end
 local r=Root(Char(p))
 if not r then continue end
 local d=(lr.Position-r.Position).Magnitude
-if d<bd then bd=d best=p end
+if d<=maxd then table.insert(out,{p=p,d=d}) end
 end
-return best
+table.sort(out,function(a,b) return a.d<b.d end)
+return out
 end
 SG=New("ScreenGui",{Name="ZxSlapper",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LP:WaitForChild("PlayerGui")})
 BG=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=10,Parent=SG})
@@ -98,7 +93,7 @@ LCard=New("Frame",{Size=UDim2.new(0,300,0,170),Position=UDim2.new(0.5,-150,0.5,-
 New("UICorner",{CornerRadius=UDim.new(0,14),Parent=LCard})
 LS=New("UIStroke",{Color=Color3.fromRGB(255,60,120),Thickness=1.5,Parent=LCard})
 New("TextLabel",{Size=UDim2.new(1,0,0,28),Position=UDim2.new(0,0,0,12),BackgroundTransparency=1,Text="ZX SLAPPER",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=20,ZIndex=13,Parent=LCard})
-New("TextLabel",{Size=UDim2.new(1,0,0,14),Position=UDim2.new(0,0,0,44),BackgroundTransparency=1,Text="ADIVINHE O SLAPPER",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(255,120,160),TextSize=11,ZIndex=13,Parent=LCard})
+New("TextLabel",{Size=UDim2.new(1,0,0,14),Position=UDim2.new(0,0,0,44),BackgroundTransparency=1,Text="ADIVINHE QUEM SLAPOU",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(255,120,160),TextSize=11,ZIndex=13,Parent=LCard})
 LBTrack=New("Frame",{Size=UDim2.new(0.8,0,0,4),Position=UDim2.new(0.1,0,0,80),BackgroundColor3=Color3.fromRGB(18,6,12),BorderSizePixel=0,ZIndex=13,Parent=LCard})
 New("UICorner",{CornerRadius=UDim.new(0,2),Parent=LBTrack})
 LBFill=New("Frame",{Size=UDim2.new(0,0,1,0),BackgroundColor3=Color3.fromRGB(255,60,120),BorderSizePixel=0,ZIndex=14,Parent=LBTrack})
@@ -126,7 +121,7 @@ New("UICorner",{CornerRadius=UDim.new(0,8),Parent=CloseBtn})
 TabBar=New("Frame",{Size=UDim2.new(1,0,0,36),Position=UDim2.new(0,0,0,52),BackgroundTransparency=1,Parent=Panel})
 TabBtns={}
 Pages={}
-local tabNames={"SLAP","FARM","PLAYER"}
+local tabNames={"DESCOBRIR","SLAP","PLAYER"}
 for i,nm in ipairs(tabNames) do
 local b=New("TextButton",{Size=UDim2.new(0.31,0,0,28),Position=UDim2.new(0.015+(i-1)*0.328,0,0,4),BackgroundColor3=i==1 and Color3.fromRGB(40,6,16) or Color3.fromRGB(10,5,8),BorderSizePixel=0,Text=nm,Font=Enum.Font.GothamBold,TextColor3=i==1 and Color3.fromRGB(255,150,180) or Color3.fromRGB(130,110,120),TextSize=11,Parent=TabBar})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=b})
@@ -209,20 +204,20 @@ end
 P1=Pages[1]
 P2=Pages[2]
 P3=Pages[3]
-Section(P1,"SLAP AURA")
-BAura=BigBtn(P1,"SLAP AURA OFF")
-MakeSlider(P1,"ALCANCE",5,60,18,function(v) auraRange=v end)
-MakeSlider(P1,"DELAY",0.1,2,0.35,function(v) auraDelay=v end)
-BSpam=BigBtn(P1,"SPAM SLAP OFF")
-BForce=BigBtn(P1,"FORCA 50")
-Section(P1,"AUTO")
-BQueue=BigBtn(P1,"AUTO QUEUE OFF")
-BGuess=BigBtn(P1,"AUTO GUESS OFF")
-Section(P2,"FARM")
-BWins=BigBtn(P2,"FARM WINS")
-BDodge=BigBtn(P2,"AUTO DODGE OFF")
-Section(P2,"TELEPORTE")
-BPlaza=BigBtn(P2,"IR PRO MEIO")
+Section(P1,"QUEM TE SLAPOU")
+LogBox=New("TextLabel",{Size=UDim2.new(0.92,0,0,80),BackgroundColor3=Color3.fromRGB(8,4,7),BorderSizePixel=0,Text="AGUARDANDO SLAP",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(220,180,195),TextSize=11,TextWrapped=true,Parent=P1})
+New("UICorner",{CornerRadius=UDim.new(0,10),Parent=LogBox})
+Section(P1,"SUSPEITOS NA HORA")
+SBox=New("Frame",{Size=UDim2.new(0.92,0,0,150),BackgroundColor3=Color3.fromRGB(8,4,7),BorderSizePixel=0,Parent=P1})
+New("UICorner",{CornerRadius=UDim.new(0,10),Parent=SBox})
+New("UIListLayout",{Padding=UDim.new(0,4),SortOrder=Enum.SortOrder.LayoutOrder,HorizontalAlignment=Enum.HorizontalAlignment.Center,Parent=SBox})
+New("UIPadding",{PaddingTop=UDim.new(0,6),PaddingBottom=UDim.new(0,6),Parent=SBox})
+TAuto,TAD=MakeRow(P1,"AUTO GUESS SUSPEITO",false)
+BClear=BigBtn(P1,"LIMPAR LOG")
+Section(P2,"QUANDO VOCE E O SLAPPER")
+BSlap=BigBtn(P2,"DAR SLAP AGORA")
+BQueue=BigBtn(P2,"AUTO QUEUE OFF")
+BForce=BigBtn(P2,"FORCA 50")
 Section(P3,"MOVIMENTO")
 TSpeed,TSD=MakeRow(P3,"SPEED",false)
 MakeSlider(P3,"VALOR SPEED",16,150,26,function(v) speedVal=v end)
@@ -231,23 +226,48 @@ MakeSlider(P3,"VEL FLY",10,200,55,function(v) flySpeed=v end)
 TNoc,TND=MakeRow(P3,"NOCLIP",false)
 TJump,TJD=MakeRow(P3,"PULO INFINITO",false)
 Section(P3,"MUNDO")
-TAfk,TAD=MakeRow(P3,"ANTI AFK",false)
+TAfk,TAD2=MakeRow(P3,"ANTI AFK",false)
 TFb,TFD2=MakeRow(P3,"FULLBRIGHT",false)
 TFps,TFD3=MakeRow(P3,"FPS BOOST",false)
 Pop=New("TextButton",{Size=UDim2.new(0,58,0,30),Position=UDim2.new(1,-70,0,60),BackgroundColor3=Color3.fromRGB(10,3,7),BorderSizePixel=0,Text="ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(255,120,160),TextSize=12,Visible=false,Parent=SG})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=Pop})
 Nh=New("Frame",{Size=UDim2.new(0,270,0,200),Position=UDim2.new(0.5,-135,0.78,0),BackgroundTransparency=1,BorderSizePixel=0,Parent=SG})
-local dodgeOn=false
-BAura.MouseButton1Click:Connect(function()
-auraOn=not auraOn
-SetTxt(BAura,auraOn and "SLAP AURA ON" or "SLAP AURA OFF")
-SetBtn(BAura,auraOn)
-Notify(auraOn and "AURA LIGADA" or "AURA DESLIGADA")
+local function RefreshSuspects()
+for _,c in ipairs(SBox:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
+for i,s in ipairs(suspects) do
+if i>5 then break end
+local b=New("TextButton",{Size=UDim2.new(0.94,0,0,24),BackgroundColor3=Color3.fromRGB(30,8,15),BorderSizePixel=0,Text="",AutoButtonColor=false,Parent=SBox})
+New("UICorner",{CornerRadius=UDim.new(0,6),Parent=b})
+New("TextLabel",{Size=UDim2.new(1,-10,1,0),Position=UDim2.new(0,8,0,0),BackgroundTransparency=1,Text=i.." "..s.p.Name.." "..math.floor(s.d).."m GUESS",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=11,TextXAlignment=Enum.TextXAlignment.Left,Parent=b})
+b.MouseButton1Click:Connect(function()
+FireGuess(s.p)
+Notify("GUESS "..s.p.Name)
 end)
-BSpam.MouseButton1Click:Connect(function()
-spamOn=not spamOn
-SetTxt(BSpam,spamOn and "SPAM SLAP ON" or "SPAM SLAP OFF")
-SetBtn(BSpam,spamOn)
+end
+end
+local function OnSlapped()
+local near=NearPlayers(45)
+suspects=near
+if #near>0 then
+local top=near[1].p.Name
+LogBox.Text="SLAP RECEBIDO SUSPEITO "..top.." + "..(#near-1)
+table.insert(slapLog,top)
+else
+LogBox.Text="SLAP RECEBIDO SEM NINGUEM PERTO"
+end
+RefreshSuspects()
+if autoGuessOn and #near>0 then
+FireGuess(near[1].p)
+Notify("AUTO GUESS "..near[1].p.Name)
+end
+end
+TAuto.MouseButton1Click:Connect(function() autoGuessOn=not autoGuessOn SetTog(TAuto,TAD,autoGuessOn) Notify(autoGuessOn and "AUTO GUESS ON" or "AUTO GUESS OFF") end)
+BClear.MouseButton1Click:Connect(function() suspects={} slapLog={} LogBox.Text="LOG LIMPO" RefreshSuspects() end)
+BSlap.MouseButton1Click:Connect(function() FireSlapOnce() Notify("SLAP ENVIADO") end)
+BQueue.MouseButton1Click:Connect(function()
+queueOn=not queueOn
+SetTxt(BQueue,queueOn and "AUTO QUEUE ON" or "AUTO QUEUE OFF")
+SetBtn(BQueue,queueOn)
 end)
 BForce.MouseButton1Click:Connect(function()
 forceVal=forceVal+10
@@ -255,35 +275,6 @@ if forceVal>200 then forceVal=10 end
 SetTxt(BForce,"FORCA "..forceVal)
 local ev=Ev("SlapPercent")
 if ev then pcall(function() ev:FireServer(forceVal) end) end
-end)
-BQueue.MouseButton1Click:Connect(function()
-queueOn=not queueOn
-SetTxt(BQueue,queueOn and "AUTO QUEUE ON" or "AUTO QUEUE OFF")
-SetBtn(BQueue,queueOn)
-end)
-BGuess.MouseButton1Click:Connect(function()
-guessOn=not guessOn
-SetTxt(BGuess,guessOn and "AUTO GUESS ON" or "AUTO GUESS OFF")
-SetBtn(BGuess,guessOn)
-end)
-BWins.MouseButton1Click:Connect(function()
-task.spawn(function()
-local ev=Ev("UpdateWins")
-if ev then pcall(function() ev:FireServer() end) end
-local ev2=Ev("SaveStreak")
-if ev2 then pcall(function() ev2:FireServer() end) end
-Notify("FARM TENTADO")
-end)
-end)
-BDodge.MouseButton1Click:Connect(function()
-dodgeOn=not dodgeOn
-SetTxt(BDodge,dodgeOn and "AUTO DODGE ON" or "AUTO DODGE OFF")
-SetBtn(BDodge,dodgeOn)
-end)
-BPlaza.MouseButton1Click:Connect(function()
-local ch=Char(LP)
-local r=ch and ch:FindFirstChild("HumanoidRootPart")
-if r then r.CFrame=CFrame.new(0,10,0) end
 end)
 TSpeed.MouseButton1Click:Connect(function() speedOn=not speedOn SetTog(TSpeed,TSD,speedOn) if not speedOn then local ch=Char(LP) if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h.WalkSpeed=16 end end end end)
 TFly.MouseButton1Click:Connect(function()
@@ -293,7 +284,7 @@ if ch then local r=Root(ch) if r then if flyOn then flyBV=Instance.new("BodyVelo
 end)
 TNoc.MouseButton1Click:Connect(function() noclipOn=not noclipOn SetTog(TNoc,TND,noclipOn) end)
 TJump.MouseButton1Click:Connect(function() jumpOn=not jumpOn SetTog(TJump,TJD,jumpOn) end)
-TAfk.MouseButton1Click:Connect(function() antiAfkOn=not antiAfkOn SetTog(TAfk,TAD,antiAfkOn) end)
+TAfk.MouseButton1Click:Connect(function() antiAfkOn=not antiAfkOn SetTog(TAfk,TAD2,antiAfkOn) end)
 TFb.MouseButton1Click:Connect(function()
 fbOn=not fbOn SetTog(TFb,TFD2,fbOn)
 if fbOn then origB=Lighting.Brightness origC=Lighting.ClockTime Lighting.Brightness=2 Lighting.ClockTime=14 Lighting.GlobalShadows=false
@@ -330,37 +321,27 @@ UIS.InputChanged:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserI
 UIS.InputEnded:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1) then dragPop=false if not moved then task.spawn(OpenMenu) end end end)
 UIS.JumpRequest:Connect(function() if jumpOn then local ch=Char(LP) if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end end end end)
 task.spawn(function()
-while task.wait(0.4) do
+local ev=Ev("ShowSlap")
+if ev and ev:IsA("RemoteEvent") then
+ev.OnClientEvent:Connect(function()
+OnSlapped()
+end)
+end
+local ev2=Ev("ImpactEffect")
+if ev2 and ev2:IsA("RemoteEvent") then
+ev2.OnClientEvent:Connect(function()
+OnSlapped()
+end)
+end
+end)
+task.spawn(function()
+while task.wait(0.5) do
 pcall(function()
-if auraOn then
-local lr=Root(Char(LP))
-if lr then
-for _,p in ipairs(Players:GetPlayers()) do
-if p==LP then continue end
-if not Alive(p) then continue end
-local r=Root(Char(p))
-if r and (lr.Position-r.Position).Magnitude<=auraRange then FireSlap(p) end
-end
-end
-end
-if spamOn then
-local t=Nearest(auraRange)
-if t then FireSlap(t) end
-end
 if queueOn then
 local ev=Ev("SlapQueue")
 if ev then ev:FireServer() end
 end
-if guessOn then
-local t=Nearest(500)
-if t then FireGuess(t) end
-end
-if dodgeOn then
-local ev=Ev("Dodge")
-if ev then ev:FireServer() end
-end
 end)
-task.wait(auraDelay)
 end
 end)
 RS.Heartbeat:Connect(function()
