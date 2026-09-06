@@ -39,6 +39,8 @@ local landMark=nil
 local ballHl=nil
 local goalA=nil
 local goalB=nil
+local gkOn=false
+local gkDist=3
 local function R(n)
 local ok,r=pcall(function()
 return game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Ball"):WaitForChild(n,3)
@@ -79,6 +81,16 @@ local db=(lr.Position-goalB).Magnitude
 if da>db then return goalA else return goalB end
 end
 return nil
+end
+local function OwnGoal()
+local lr=Root(Char())
+if not lr then return nil end
+if goalA and goalB then
+local da=(lr.Position-goalA).Magnitude
+local db=(lr.Position-goalB).Magnitude
+if da<db then return goalA else return goalB end
+end
+return goalA
 end
 local function AimDir()
 local lr=Root(Char())
@@ -290,6 +302,8 @@ BallInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,30),BackgroundColor3=Color3.fr
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=BallInfo})
 BTraj=BigBtn(P1,"TRAJETORIA OFF")
 BGoal=BigBtn(P1,"ESCANEAR GOLS")
+TGk,TGkD=MakeRow(P1,"AUTO GOLEIRO",false)
+MakeSlider(P1,"LINHA GOL",1,10,3,function(v) gkDist=v end)
 Section(P2,"ILEGAL")
 TTackle,TTD=MakeRow(P2,"AUTO TACKLE",false)
 MakeSlider(P2,"DIST TACKLE",4,30,12,function(v) tackleDist=v end)
@@ -337,6 +351,12 @@ end
 end
 if goalA then Notify("GOLS ACHADOS") else Notify("GOL NAO ACHADO") end
 end)
+end)
+TGk.MouseButton1Click:Connect(function()
+gkOn=not gkOn
+SetTog(TGk,TGkD,gkOn)
+if gkOn and not goalA then Notify("ESCANEIE GOLS PRIMEIRO") end
+Notify(gkOn and "GOLEIRO ON" or "GOLEIRO OFF")
 end)
 TTackle.MouseButton1Click:Connect(function() tackleOn=not tackleOn SetTog(TTackle,TTD,tackleOn) Notify(tackleOn and "TACKLE ON" or "TACKLE OFF") end)
 BRain.MouseButton1Click:Connect(function()
@@ -403,6 +423,34 @@ while task.wait(0.15) do
 pcall(function()
 local ball,d=FindBall()
 local lr=Root(Char())
+if gkOn and ball and lr then
+local og=OwnGoal()
+if og then
+local toBall=ball.Position-og
+toBall=Vector3.new(toBall.X,0,toBall.Z)
+if toBall.Magnitude>1 then
+local spot=og+toBall.Unit*gkDist
+spot=Vector3.new(spot.X,lr.Position.Y,spot.Z)
+local far=(lr.Position-spot).Magnitude
+if far>40 then
+lr.CFrame=CFrame.new(spot)
+else
+local ch=Char()
+local hum=ch and ch:FindFirstChildOfClass("Humanoid")
+if hum then hum:MoveTo(spot) end
+end
+end
+local eg=EnemyGoal()
+if d<=10 and eg then
+local dir=Flat(eg-ball.Position)
+local ev=R("Kick")
+if ev then
+pcall(function() ev:FireServer({ChargeSeconds=2,MaximumChargeSeconds=2,AimDirection={Direction=dir},KickDirection=dir,Power=100}) end)
+pcall(function() ev:FireServer(ball,dir,100) end)
+end
+end
+end
+end
 if magnetOn and ball and lr and d>magnetDist then
 lr.CFrame=ball.CFrame+Vector3.new(0,2,3)
 end
