@@ -16,10 +16,14 @@ local scanTxt=""
 local remoteList={}
 local localList={}
 local moduleList={}
+local scriptRefs={}
+local srcCache={}
+local srcStat="FONTES 0"
+local nilCount=0
+local execName="CONHECIDO"
 local detectInfo="AGUARDANDO"
 local sendStat="NAO ENVIADO"
-if not _G.ZxDumpUrl then _G.ZxDumpUrl="https://thinkpad-maternity-bench-presently.trycloudflare.com/dump" end
-_G.ZxDumpUrl="https://thinkpad-maternity-bench-presently.trycloudflare.com/dump"
+local sendStat="NAO SALVO"
 SG=New("ScreenGui",{Name="ZxAnalyzer",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LP:WaitForChild("PlayerGui")})
 BG=New("Frame",{Size=UDim2.new(1,0,1,0),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=10,Parent=SG})
 LCard=New("Frame",{Size=UDim2.new(0,300,0,170),Position=UDim2.new(0.5,-150,0.5,-85),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ZIndex=12,Parent=BG})
@@ -47,6 +51,23 @@ local function ScanClient()
 remoteList={}
 localList={}
 moduleList={}
+scriptRefs={}
+nilCount=0
+pcall(function()
+local idf=identifyexecutor or getexecutorname or whatexecutor
+if idf then execName=idf() end
+end)
+pcall(function()
+if getnilinstances then
+local nils=getnilinstances()
+nilCount=#nils
+for _,d in ipairs(nils) do
+if d:IsA("LocalScript") or d:IsA("ModuleScript") then
+if #scriptRefs<250 then table.insert(scriptRefs,d) end
+end
+end
+end
+end)
 local total=0
 pcall(function()
 for _,d in ipairs(game:GetDescendants()) do
@@ -56,9 +77,11 @@ if #remoteList<150 then table.insert(remoteList,d:GetFullName()) end
 end
 if d:IsA("LocalScript") then
 if #localList<150 then table.insert(localList,d:GetFullName()) end
+if #scriptRefs<250 then table.insert(scriptRefs,d) end
 end
 if d:IsA("ModuleScript") then
 if #moduleList<150 then table.insert(moduleList,d:GetFullName()) end
+if #scriptRefs<250 then table.insert(scriptRefs,d) end
 end
 end
 end)
@@ -105,40 +128,81 @@ for _,r in ipairs(localList) do table.insert(out,"L "..r) end
 table.insert(out,"MODULES "..#moduleList)
 for _,r in ipairs(moduleList) do table.insert(out,"M "..r) end
 table.insert(out,"SERVER NAO REPLICA ServerScriptService ServerStorage")
+table.insert(out,"EXEC "..execName.." NIL "..nilCount.." REFS "..#scriptRefs)
 scanTxt=table.concat(out,"\n")
 pcall(function()
-local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,locals=localList,modules=moduleList})
+local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,locals=localList,modules=moduleList,nils=nilCount,exec=execName})
 if writefile then writefile("ZX_CLIENT_DUMP.json",js) end
 end)
 return scanTxt
 end
+local function TryDecompile(inst)
+local src=nil
+pcall(function()
+if decompile then src=decompile(inst) end
+end)
+if type(src)=="string" and #src>20 then return src end
+pcall(function()
+if getscriptbytecode then
+local bc=getscriptbytecode(inst)
+if type(bc)=="string" and #bc>0 then src="BYTECODE "..#bc.." "..inst:GetFullName() end
+end
+end)
+if type(src)=="string" and #src>20 then return src end
+pcall(function()
+if getscripthash then src="HASH "..getscripthash(inst) end
+end)
+return src
+end
+local function CopyScripts()
+srcCache={}
+local ok=0
+local fail=0
+pcall(function()
+if makefolder and not isfolder("ZX_SCRIPTS") then makefolder("ZX_SCRIPTS") end
+end)
+for i,inst in ipairs(scriptRefs) do
+if i>80 then break end
+local nm="S"..i
+pcall(function() nm=inst:GetFullName():gsub("[^%w]","_"):sub(1,60) end)
+local src=TryDecompile(inst)
+if type(src)=="string" and #src>20 then
+ok=ok+1
+srcCache[nm]=src:sub(1,6000)
+pcall(function()
+if writefile then writefile("ZX_SCRIPTS/"..nm..".lua",src:sub(1,30000)) end
+end)
+else fail=fail+1 end
+end
+srcStat="FONTES "..ok.." FALHA "..fail
+SrcStat.Text=srcStat
+Notify(srcStat)
+return ok
+end
+local function SendSources()
+local arr={}
+for k,v in pairs(srcCache) do
+if #arr>=40 then break end
+table.insert(arr,{name=k,code=v:sub(1,3000)})
+end
+pcall(function()
+local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,exec=execName,sources=arr})
+if writefile then writefile("ZX_SOURCES.json",js) end
+end)
+srcStat="FONTES SALVAS "..#arr.." LOCAL"
+SrcStat.Text=srcStat
+Notify(srcStat)
+return true
+end
 local function SendDump()
-local url=_G.ZxDumpUrl
-if UrlBox and UrlBox.Text and #UrlBox.Text>8 then url=UrlBox.Text _G.ZxDumpUrl=url end
-if not url or url=="" then sendStat="SEM URL" SendStat.Text=sendStat return false end
-local payload=""
-local okj=pcall(function() payload=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,locals=localList,modules=moduleList}) end)
-if not okj or payload=="" then sendStat="JSON FALHOU" SendStat.Text=sendStat return false end
-sendStat="ENVIANDO"
+sendStat="SALVO LOCAL"
 SendStat.Text=sendStat
-local done=false
-local errmsg=""
-local req=request or http_request or syn_request or fluxus_request or request_async or http_request_async
-if req then
-local ok,res=pcall(function() return req({Url=url,Method="POST",Headers={["Content-Type"]="application/json"},Body=payload}) end)
-if ok and res then
-local code=res.StatusCode or res.Status or 0
-if code==200 or code==0 then done=true else errmsg="HTTP "..code end
-else errmsg="REQ FALHOU" end
-end
-if not done then
-local ok2,err2=pcall(function() Http:PostAsync(url,payload,Enum.HttpContentType.ApplicationJson) end)
-if ok2 then done=true else errmsg="POSTASYNC BLOQUEADO" end
-end
-if done then sendStat="ENVIADO OK" else sendStat="FALHA ENVIO" end
-SendStat.Text=sendStat
+pcall(function()
+local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,locals=localList,modules=moduleList,nils=nilCount,exec=execName})
+if writefile then writefile("ZX_CLIENT_DUMP.json",js) end
+end)
 Notify(sendStat)
-return done
+return true
 end
 Panel=New("Frame",{Size=UDim2.new(0,340,0,520),Position=UDim2.new(0.5,-170,0.5,1200),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ClipsDescendants=true,Visible=false,Parent=SG})
 New("UICorner",{CornerRadius=UDim.new(0,16),Parent=Panel})
@@ -168,12 +232,14 @@ InfoBox=New("TextLabel",{Size=UDim2.new(0.92,0,0,66),BackgroundColor3=Color3.fro
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=InfoBox})
 SendStat=New("TextLabel",{Size=UDim2.new(0.92,0,0,26),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="NAO ENVIADO",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,100,255),TextSize=11,Parent=Scroll})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=SendStat})
-Section("URL DESTINO")
-UrlBox=New("TextBox",{Size=UDim2.new(0.92,0,0,40),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text=_G.ZxDumpUrl,Font=Enum.Font.Code,TextColor3=Color3.fromRGB(140,220,255),TextSize=10,TextWrapped=true,MultiLine=true,ClearTextOnFocus=false,Parent=Scroll})
-New("UICorner",{CornerRadius=UDim.new(0,10),Parent=UrlBox})
+Section("SCRIPTS LOCAL E NAO LOCAL")
+SrcStat=New("TextLabel",{Size=UDim2.new(0.92,0,0,26),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="FONTES 0",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,100,255),TextSize=11,Parent=Scroll})
+New("UICorner",{CornerRadius=UDim.new(0,10),Parent=SrcStat})
 Section("ACOES")
 BScan=BigBtn("ESCANEAR CLIENT")
-BSend=BigBtn("ENVIAR PARA IA")
+BSend=BigBtn("SALVAR LOCAL")
+BCopySrc=BigBtn("COPIAR SCRIPTS LOCAL")
+BSaveSrc=BigBtn("SALVAR FONTES LOCAL")
 BCopy=BigBtn("COPIAR DUMP")
 BSave=BigBtn("SAVEINSTANCE CLIENT")
 Section("DUMP")
@@ -192,6 +258,12 @@ task.spawn(function() SendDump() end)
 end)
 BSend.MouseButton1Click:Connect(function()
 task.spawn(function() SendDump() end)
+end)
+BCopySrc.MouseButton1Click:Connect(function()
+task.spawn(function() CopyScripts() end)
+end)
+BSaveSrc.MouseButton1Click:Connect(function()
+task.spawn(function() SendSources() end)
 end)
 BCopy.MouseButton1Click:Connect(function()
 if setclipboard and scanTxt~="" then setclipboard(scanTxt:sub(1,15000)) Notify("DUMP COPIADO") else Notify("ESCANEIE PRIMEIRO") end
