@@ -39,6 +39,12 @@ if string.find(p,"atomicbinding") then return true end
 if string.find(p,"firstperson") then return true end
 return false
 end
+local function JunkPath(path)
+local p=string.lower(path)
+if string.find(p,"corepackages") then return true end
+if string.find(p,"coregui") then return true end
+return false
+end
 local function GameScript(path)
 local p=string.lower(path)
 if string.find(p,"screengui") then return true end
@@ -87,7 +93,11 @@ local nils=getnilinstances()
 nilCount=#nils
 for _,d in ipairs(nils) do
 if d:IsA("LocalScript") or d:IsA("ModuleScript") then
+local jp=""
+pcall(function() jp=d:GetFullName() end)
+if not JunkPath(jp) then
 if #scriptRefs<400 then table.insert(scriptRefs,d) end
+end
 end
 end
 end
@@ -98,8 +108,12 @@ local seen={}
 for _,d in ipairs(scriptRefs) do seen[d]=true end
 for _,d in ipairs(getscripts()) do
 if not seen[d] and (d:IsA("LocalScript") or d:IsA("ModuleScript") or d:IsA("Script")) then
+local jp=""
+pcall(function() jp=d:GetFullName() end)
+if not JunkPath(jp) then
 seen[d]=true
 if #scriptRefs<600 then table.insert(scriptRefs,d) end
+end
 end
 end
 end
@@ -133,16 +147,24 @@ local total=0
 pcall(function()
 for _,d in ipairs(game:GetDescendants()) do
 total=total+1
+local jp=""
+if d:IsA("LocalScript") or d:IsA("ModuleScript") then
+pcall(function() jp=d:GetFullName() end)
+end
 if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") or d:IsA("BindableEvent") or d:IsA("BindableFunction") then
 if #remoteList<150 then table.insert(remoteList,d:GetFullName()) end
 end
 if d:IsA("LocalScript") then
 if #localList<300 then table.insert(localList,d:GetFullName()) end
+if not JunkPath(jp) then
 if #scriptRefs<600 then table.insert(scriptRefs,d) end
+end
 end
 if d:IsA("ModuleScript") then
 if #moduleList<300 then table.insert(moduleList,d:GetFullName()) end
+if not JunkPath(jp) then
 if #scriptRefs<600 then table.insert(scriptRefs,d) end
+end
 end
 end
 end)
@@ -460,6 +482,27 @@ if #remoteLog>200 then table.remove(remoteLog,1) end
 end)
 end
 end
+end
+end)
+pcall(function()
+if getrawmetatable and newcclosure and getnamecallmethod and setreadonly then
+local mt=getrawmetatable(game)
+setreadonly(mt,false)
+local oldName=mt.__namecall
+mt.__namecall=newcclosure(function(self,...)
+local m=""
+pcall(function() m=getnamecallmethod() end)
+if spyOn and (m=="FireServer" or m=="InvokeServer") then
+pcall(function()
+if self and self.Parent and self.Parent.Name=="events" then
+table.insert(remoteLog,{n=self.Name.." OUT",m=m,t=os.time()})
+if #remoteLog>200 then table.remove(remoteLog,1) end
+end
+end)
+end
+return oldName(self,...)
+end)
+setreadonly(mt,true)
 end
 end)
 task.spawn(function()
