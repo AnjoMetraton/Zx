@@ -62,10 +62,10 @@ local n=0
 for k2,v2 in pairs(v) do
 if n>5 then break end
 s=s..tostring(k2).."="
-if type(v2)=="Vector3" then s=s.."V3"
-elseif type(v2)=="CFrame" then s=s.."CF"
-elseif type(v2)=="Instance" then s=s..v2.ClassName..":"..v2.Name
-else s=s..tostring(v2):sub(1,24) end
+if type(v2)=="Vector3" then s=s.."V3" end
+if type(v2)=="CFrame" then s=s.."CF" end
+if type(v2)=="Instance" then s=s..v2.ClassName..":"..v2.Name end
+if type(v2)~="Vector3" and type(v2)~="CFrame" and type(v2)~="Instance" then s=s..tostring(v2):sub(1,24) end
 s=s.." "
 n=n+1
 end
