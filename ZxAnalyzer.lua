@@ -28,6 +28,28 @@ local remoteLog={}
 local animLog={}
 local guiLog={}
 local spyOn=true
+local gameDir="ZX_JOGO"
+local partStat="BLOCOS 0"
+local function GameDir()
+local nm="JOGO"
+pcall(function()
+local info=game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
+if info and info.Name then nm=info.Name end
+end)
+nm=nm:gsub("[^%w%s]",""):gsub("%s+","_"):sub(1,40)
+if nm=="" then nm="JOGO" end
+gameDir="ZX_"..game.PlaceId.."_"..nm
+pcall(function()
+if makefolder then
+if not isfolder(gameDir) then makefolder(gameDir) end
+if not isfolder(gameDir.."/Scripts") then makefolder(gameDir.."/Scripts") end
+end
+end)
+return gameDir
+end
+local function WP(f)
+return gameDir.."/"..f
+end
 local function SkipScript(path)
 local p=string.lower(path)
 if string.find(p,"animate") then return true end
@@ -78,6 +100,7 @@ task.delay(2.5,function() pcall(function() n:Destroy() end) end)
 end)
 end
 local function ScanClient()
+GameDir()
 remoteList={}
 localList={}
 moduleList={}
@@ -112,7 +135,7 @@ local jp=""
 pcall(function() jp=d:GetFullName() end)
 if not JunkPath(jp) then
 seen[d]=true
-if #scriptRefs<600 then table.insert(scriptRefs,d) end
+if #scriptRefs<800 then table.insert(scriptRefs,d) end
 end
 end
 end
@@ -124,8 +147,12 @@ local seen={}
 for _,d in ipairs(scriptRefs) do seen[d]=true end
 for _,d in ipairs(getrunningscripts()) do
 if not seen[d] then
+local jp=""
+pcall(function() jp=d:GetFullName() end)
+if not JunkPath(jp) then
 seen[d]=true
-if #scriptRefs<600 then table.insert(scriptRefs,d) end
+if #scriptRefs<800 then table.insert(scriptRefs,d) end
+end
 end
 end
 end
@@ -137,8 +164,12 @@ for _,d in ipairs(scriptRefs) do seen[d]=true end
 for _,d in ipairs(getloadedmodules()) do
 if type(d)=="table" then continue end
 if not seen[d] then
+local jp=""
+pcall(function() jp=d:GetFullName() end)
+if not JunkPath(jp) then
 seen[d]=true
-if #scriptRefs<600 then table.insert(scriptRefs,d) end
+if #scriptRefs<800 then table.insert(scriptRefs,d) end
+end
 end
 end
 end
@@ -152,18 +183,18 @@ if d:IsA("LocalScript") or d:IsA("ModuleScript") then
 pcall(function() jp=d:GetFullName() end)
 end
 if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") or d:IsA("BindableEvent") or d:IsA("BindableFunction") then
-if #remoteList<150 then table.insert(remoteList,d:GetFullName()) end
+if #remoteList<250 then table.insert(remoteList,d:GetFullName()) end
 end
 if d:IsA("LocalScript") then
-if #localList<300 then table.insert(localList,d:GetFullName()) end
+if #localList<500 then table.insert(localList,d:GetFullName()) end
 if not JunkPath(jp) then
-if #scriptRefs<600 then table.insert(scriptRefs,d) end
+if #scriptRefs<800 then table.insert(scriptRefs,d) end
 end
 end
 if d:IsA("ModuleScript") then
-if #moduleList<300 then table.insert(moduleList,d:GetFullName()) end
+if #moduleList<500 then table.insert(moduleList,d:GetFullName()) end
 if not JunkPath(jp) then
-if #scriptRefs<600 then table.insert(scriptRefs,d) end
+if #scriptRefs<800 then table.insert(scriptRefs,d) end
 end
 end
 end
@@ -215,7 +246,7 @@ table.insert(out,"EXEC "..execName.." NIL "..nilCount.." REFS "..#scriptRefs)
 scanTxt=table.concat(out,"\n")
 pcall(function()
 local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,locals=localList,modules=moduleList,nils=nilCount,exec=execName})
-if writefile then writefile("ZX_CLIENT_DUMP.json",js) end
+if writefile then writefile(WP("DUMP.json"),js) end
 end)
 return scanTxt
 end
@@ -270,7 +301,7 @@ pcall(function() path=inst:GetFullName() end)
 if SkipScript(path) then table.insert(ordered,inst) end
 end
 pcall(function()
-if makefolder and not isfolder("ZX_SCRIPTS") then makefolder("ZX_SCRIPTS") end
+GameDir()
 end)
 local manifest={}
 for i,inst in ipairs(ordered) do
@@ -286,7 +317,7 @@ if type(src)=="string" and #src>20 then
 ok=ok+1
 srcCache[nm]=src:sub(1,6000)
 pcall(function()
-if writefile then writefile("ZX_SCRIPTS/"..nm..".lua",src:sub(1,60000)) end
+if writefile then writefile(WP("Scripts/"..nm..".lua"),src:sub(1,60000)) end
 end)
 table.insert(manifest,{name=nm,path=path,st="OK"})
 else
@@ -297,7 +328,7 @@ pcall(function()
 local fn={place=game.PlaceId,ok=ok,fail=fail,server=server,total=#ordered,items=manifest}
 if decompile then fn.hasDec=1 else fn.hasDec=0 end
 if getscriptbytecode then fn.hasBc=1 else fn.hasBc=0 end
-if writefile then writefile("ZX_MANIFEST.json",Http:JSONEncode(fn)) end
+if writefile then writefile(WP("MANIFEST.json"),Http:JSONEncode(fn)) end
 end)
 local hd=decompile and "DEC" or "SDEC"
 local hb=getscriptbytecode and "BC" or "SBC"
@@ -307,6 +338,7 @@ Notify(srcStat)
 return ok
 end
 local function SendSources()
+if not next(srcCache) then CopyScripts() end
 local arr={}
 for k,v in pairs(srcCache) do
 if #arr>=40 then break end
@@ -314,19 +346,71 @@ table.insert(arr,{name=k,code=v:sub(1,3000)})
 end
 pcall(function()
 local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,exec=execName,sources=arr})
-if writefile then writefile("ZX_SOURCES.json",js) end
+if writefile then writefile(WP("SOURCES.json"),js) end
 end)
 srcStat="FONTES SALVAS "..#arr.." LOCAL"
 SrcStat.Text=srcStat
 Notify(srcStat)
 return true
 end
+local function SaveParts()
+GameDir()
+local anch=0
+local unanch=0
+local withScr=0
+local noScr=0
+local parts={}
+local total=0
+local done=0
+for _,v in ipairs(workspace:GetDescendants()) do
+if v:IsA("BasePart") then
+total=total+1
+end
+end
+for _,v in ipairs(workspace:GetDescendants()) do
+if v:IsA("BasePart") then
+done=done+1
+if done%600==0 then task.wait() end
+if #parts<12000 then
+local cf=v.CFrame
+local sz=v.Size
+local col=v.Color
+local has=false
+pcall(function() has=v:FindFirstChildOfClass("LuaSourceContainer")~=nil end)
+if has then withScr=withScr+1 else noScr=noScr+1 end
+if v.Anchored then anch=anch+1 else unanch=unanch+1 end
+local pp=""
+pcall(function() pp=v:GetFullName() end)
+table.insert(parts,{p=pp,c=v.ClassName,cf={cf:GetComponents()},sz={sz.X,sz.Y,sz.Z},col={math.floor(col.R*255),math.floor(col.G*255),math.floor(col.B*255)},m=tostring(v.Material),a=v.Anchored and 1 or 0,t=v.Transparency,cc=v.CanCollide and 1 or 0,s=has and 1 or 0})
+end
+end
+end
+pcall(function()
+if writefile then writefile(WP("PARTS.json"),Http:JSONEncode({place=game.PlaceId,total=total,anch=anch,unanch=unanch,withScr=withScr,noScr=noScr,parts=parts})) end
+end)
+local rb={}
+table.insert(rb,"local F=Instance.new(\"Folder\") F.Name=\"ZXMAPA\" F.Parent=workspace")
+local n=0
+for _,d in ipairs(parts) do
+if n>=3000 then break end
+n=n+1
+local c=d.cf
+table.insert(rb,"do local p=Instance.new(\"Part\") p.Name="..string.format("%q",d.p:sub(1,40)).." p.Size=Vector3.new("..d.sz[1]..","..d.sz[2]..","..d.sz[3]..") p.CFrame=CFrame.new("..c[1]..","..c[2]..","..c[3]..","..c[4]..","..c[5]..","..c[6]..","..c[7]..","..c[8]..","..c[9]..","..c[10]..","..c[11]..","..c[12]..") p.Color=Color3.fromRGB("..d.col[1]..","..d.col[2]..","..d.col[3]..") p.Anchored="..(d.a==1 and "true" or "false").." p.Parent=F end")
+end
+pcall(function()
+if writefile then writefile(WP("REBUILD.lua"),table.concat(rb,"\n")) end
+end)
+partStat="BLOCOS "..total.." ANC "..anch.." SOL "..unanch.." CSCR "..withScr.." SSCR "..noScr
+PartStat.Text=partStat
+Notify(partStat)
+return total
+end
 local function SendDump()
 sendStat="SALVO LOCAL"
 SendStat.Text=sendStat
 pcall(function()
 local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,locals=localList,modules=moduleList,nils=nilCount,exec=execName})
-if writefile then writefile("ZX_CLIENT_DUMP.json",js) end
+if writefile then writefile(WP("DUMP.json"),js) end
 end)
 Notify(sendStat)
 return true
@@ -366,10 +450,14 @@ New("UICorner",{CornerRadius=UDim.new(0,10),Parent=SendStat})
 Section("SCRIPTS LOCAL E NAO LOCAL")
 SrcStat=New("TextLabel",{Size=UDim2.new(0.92,0,0,26),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="FONTES 0",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,100,255),TextSize=11,Parent=Scroll})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=SrcStat})
+Section("BLOCOS ANC E SOL")
+PartStat=New("TextLabel",{Size=UDim2.new(0.92,0,0,26),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="BLOCOS 0",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,100,255),TextSize=11,Parent=Scroll})
+New("UICorner",{CornerRadius=UDim.new(0,10),Parent=PartStat})
 Section("ACOES")
 BAll=BigBtn("SCANEAR E SALVAR TUDO")
 BScan=BigBtn("ESCANEAR CLIENT")
 BSend=BigBtn("SALVAR LOCAL")
+BParts=BigBtn("SALVAR BLOCOS")
 BCopySrc=BigBtn("COPIAR SCRIPTS LOCAL")
 BSaveSrc=BigBtn("SALVAR FONTES LOCAL")
 BSpy=BigBtn("REMOTE SPY OFF")
@@ -400,6 +488,7 @@ DumpBox.Text=txt:sub(1,6000)
 SendDump()
 CopyScripts()
 SendSources()
+SaveParts()
 pcall(function()
 guiLog={}
 for _,d in ipairs(LP:WaitForChild("PlayerGui"):GetDescendants()) do
@@ -409,13 +498,13 @@ pcall(function() tx=d.Text:sub(1,60) end)
 if #guiLog<200 then table.insert(guiLog,d:GetFullName().." "..tx) end
 end
 end
-if writefile then writefile("ZX_GUILOG.json",Http:JSONEncode(guiLog)) end
+if writefile then writefile(WP("GUILOG.json"),Http:JSONEncode(guiLog)) end
 end)
 pcall(function()
-if writefile then writefile("ZX_REMOTELOG.json",Http:JSONEncode(remoteLog)) end
+if writefile then writefile(WP("REMOTELOG.json"),Http:JSONEncode(remoteLog)) end
 end)
 pcall(function()
-if writefile then writefile("ZX_ANIMLOG.json",Http:JSONEncode(animLog)) end
+if writefile then writefile(WP("ANIMLOG.json"),Http:JSONEncode(animLog)) end
 end)
 InfoBox.Text=detectInfo.." TUDO SALVO"
 Notify("TUDO SALVO LOCAL")
@@ -423,6 +512,9 @@ end)
 end)
 BSend.MouseButton1Click:Connect(function()
 task.spawn(function() SendDump() end)
+end)
+BParts.MouseButton1Click:Connect(function()
+task.spawn(function() SaveParts() end)
 end)
 BCopySrc.MouseButton1Click:Connect(function()
 task.spawn(function() CopyScripts() end)
@@ -458,7 +550,7 @@ end
 end
 end
 pcall(function()
-if writefile then writefile("ZX_ANIMLOG.json",Http:JSONEncode(animLog)) end
+if writefile then writefile(WP("ANIMLOG.json"),Http:JSONEncode(animLog)) end
 end)
 Notify("ANIM SPY "..n)
 end)
@@ -509,7 +601,7 @@ task.spawn(function()
 while task.wait(5) do
 if spyOn and #remoteLog>0 then
 pcall(function()
-if writefile then writefile("ZX_REMOTELOG.json",Http:JSONEncode(remoteLog)) end
+if writefile then writefile(WP("REMOTELOG.json"),Http:JSONEncode(remoteLog)) end
 end)
 end
 end
@@ -528,7 +620,7 @@ end
 end
 end)
 pcall(function()
-if writefile then writefile("ZX_GUILOG.json",Http:JSONEncode(guiLog)) end
+if writefile then writefile(WP("GUILOG.json"),Http:JSONEncode(guiLog)) end
 end)
 DumpBox.Text=table.concat(guiLog,"\n"):sub(1,6000)
 Notify("GUI "..#guiLog)
@@ -538,14 +630,16 @@ BCopy.MouseButton1Click:Connect(function()
 if setclipboard and scanTxt~="" then setclipboard(scanTxt:sub(1,15000)) Notify("DUMP COPIADO") else Notify("ESCANEIE PRIMEIRO") end
 end)
 BSave.MouseButton1Click:Connect(function()
-Notify("SALVANDO")
+Notify("SALVANDO MAPA")
 task.spawn(function()
 local ok=pcall(function()
+GameDir()
 local P={RepoURL="https://raw.githubusercontent.com/luau/UniversalSynSaveInstance/main/",SSI="saveinstance"}
 local f=loadstring(game:HttpGet(P.RepoURL..P.SSI..".luau",true),P.SSI)()
-f({Decompile=true,SavePlayers=false})
+f({Decompile=true,SavePlayers=false,SafeMode=true,DecompileTimeout=15,SaveBytecodeIfDecompilerFails=true,TreatUnionsAsParts=true,FilePath=gameDir.."/MAPA"})
 end)
-Notify(ok and "SAVE OK" or "SAVE FALHOU")
+if not ok then SaveParts() end
+Notify(ok and "SAVE OK" or "SAVE PARCIAL BLOCOS")
 end)
 end)
 local function CloseMenu()
