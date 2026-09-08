@@ -23,6 +23,8 @@ local pktCount=0
 local spamOn=false
 local spamDelay=0.5
 local autoLaunchOn=false
+local macros={nil,nil,nil}
+local macroOn={false,false,false}
 local cityEspOn=false
 local playerEspOn=false
 local flyOn=false
@@ -201,6 +203,10 @@ BLaunch=BigBtn(P1,"AUTO LANCAR OFF")
 MakeSlider(P1,"DELAY SPAM",0.1,5,0.5,function(v) spamDelay=v end)
 BReplay=BigBtn(P1,"REPETIR ULTIMO")
 BSpam=BigBtn(P1,"SPAM PACOTE OFF")
+Section(P1,"MACROS AUTO")
+BM1=BigBtn(P1,"MACRO 1 GRAVAR")
+BM2=BigBtn(P1,"MACRO 2 GRAVAR")
+BM3=BigBtn(P1,"MACRO 3 GRAVAR")
 Section(P1,"SPY REDE")
 TSpy,TSD=MakeRow(P1,"SPY BYTENET",true)
 PktInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,60),BackgroundColor3=Color3.fromRGB(10,6,4),BorderSizePixel=0,Text="LANCE 1 MISSIL MANUAL",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(215,170,130),TextSize=11,TextWrapped=true,Parent=P1})
@@ -249,6 +255,25 @@ spamOn=not spamOn
 SetTxt(BSpam,spamOn and "SPAM PACOTE ON" or "SPAM PACOTE OFF")
 SetBtn(BSpam,spamOn)
 end)
+local macroBtns={BM1,BM2,BM3}
+for i=1,3 do
+local b=macroBtns[i]
+b.MouseButton1Click:Connect(function()
+if not macroOn[i] and macros[i]==nil then
+if lastPkt then
+macros[i]=lastPkt
+macroOn[i]=true
+SetTxt(b,"MACRO "..i.." ON")
+SetBtn(b,true)
+Notify("MACRO "..i.." GRAVADO")
+else Notify("FACA ACAO 1X") end
+elseif macros[i]~=nil then
+macroOn[i]=not macroOn[i]
+SetTxt(b,"MACRO "..i..(macroOn[i] and " ON" or " OFF"))
+SetBtn(b,macroOn[i])
+end
+end)
+end
 TSpy.MouseButton1Click:Connect(function() spyOn=not spyOn SetTog(TSpy,TSD,spyOn) end)
 TCity.MouseButton1Click:Connect(function()
 cityEspOn=not cityEspOn
@@ -379,6 +404,12 @@ pcall(function()
 if spamOn or autoLaunchOn then
 Replay()
 task.wait(spamDelay)
+end
+for i=1,3 do
+if macroOn[i] and macros[i] then
+SendPkt(macros[i])
+task.wait(spamDelay)
+end
 end
 end)
 end
