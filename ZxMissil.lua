@@ -70,9 +70,10 @@ s=s.." "
 n=n+1
 end
 return s.."}"
-elseif t=="Instance" then return v.ClassName..":"..v.Name
-elseif t=="Vector3" then return "V3 "..math.floor(v.X)..","..math.floor(v.Y)..","..math.floor(v.Z) end
-elseif t=="CFrame" then return "CF "..math.floor(v.Position.X)..","..math.floor(v.Position.Y)..","..math.floor(v.Position.Z) end
+end
+if t=="Instance" then return v.ClassName..":"..v.Name end
+if t=="Vector3" then return "V3 "..math.floor(v.X)..","..math.floor(v.Y)..","..math.floor(v.Z) end
+if t=="CFrame" then return "CF "..math.floor(v.Position.X)..","..math.floor(v.Position.Y)..","..math.floor(v.Position.Z) end
 return tostring(v):sub(1,60)
 end
 SG=New("ScreenGui",{Name="ZxMissil",ResetOnSpawn=false,ZIndexBehavior=Enum.ZIndexBehavior.Sibling,IgnoreGuiInset=true,Parent=LP:WaitForChild("PlayerGui")})
