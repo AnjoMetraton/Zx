@@ -66,17 +66,18 @@ end
 return out
 end
 local function TakeItem(part)
-local n=Net()
-if n then
-pcall(function() n.InvokeServer("AttemptSwapItems",part) end)
-end
 local ch=Char()
 local r=Root(ch)
 local tp=nil
 if part:IsA("BasePart") then tp=part.Position
-elseif part:IsA("Tool") and part.Handle then tp=part.Handle.Position end
+elseif part:IsA("Tool") and part:FindFirstChild("Handle") then tp=part.Handle.Position end
 if r and tp then
 r.CFrame=CFrame.new(tp+Vector3.new(0,3,0))
+task.wait(0.35)
+end
+local n=Net()
+if n then
+pcall(function() n.InvokeServer("AttemptSwapItems",part) end)
 end
 end
 local function Doors()
@@ -90,25 +91,66 @@ end
 return out
 end
 local function ToggleDoor(m)
+local ch=Char()
+local r=Root(ch)
+if r then
+local p=m:FindFirstChildWhichIsA("BasePart",true)
+if p and (r.Position-p.Position).Magnitude>12 then
+r.CFrame=p.CFrame+Vector3.new(0,3,3)
+task.wait(0.3)
+end
+end
 local n=Net()
 if n then
 pcall(function() n.FireServer("AttemptToggleDoor",m,true) end)
+task.wait(0.2)
 pcall(function() n.FireServer("AttemptToggleDoor",m,false) end)
 end
 end
+local spiderList={}
+local spiderTick=0
 local function SpiderChar()
-local best=nil
-local bn=0
-for _,p in ipairs(Players:GetPlayers()) do
-if p~=LP then
-local ch=p.Character
-if ch then
-local c=#ch:GetDescendants()
-if c>bn then bn=c best=ch end
+if os.clock()-spiderTick>4 then
+spiderTick=os.clock()
+spiderList={}
+local n=Net()
+if n then
+pcall(function()
+local res=n.InvokeServer("GetSpiderCharactersInWorld")
+if type(res)=="table" then
+for _,v in pairs(res) do
+local ch=nil
+if type(v)=="table" then ch=v.Character or v[1] end
+if typeof(ch)=="Instance" and ch:IsDescendantOf(workspace) then
+table.insert(spiderList,ch)
 end
 end
 end
-return best
+end)
+end
+end
+for _,ch in ipairs(spiderList) do
+if ch:IsDescendantOf(workspace) then
+local h=ch:FindFirstChildOfClass("Humanoid")
+if h and h.Health>0 then return ch end
+end
+end
+return nil
+end
+local function ClearEsp()
+for k,v in pairs(espC) do pcall(function() v:Destroy() end) end
+espC={}
+end
+local genNames={Hitbox=true,Handle=true,Part=true,MeshPart=true,Mesh=true,Union=true,Base=true,HitBox=true}
+local function ItemName(it)
+if it:IsA("Tool") then return it.Name end
+if not genNames[it.Name] then return it.Name end
+local p=it.Parent
+while p and p~=workspace and p~=game do
+if (p:IsA("Tool") or p:IsA("Model")) and not genNames[p.Name] then return p.Name end
+p=p.Parent
+end
+return it.Name
 end
 local function MkEsp(ad,color,txt)
 local b=Instance.new("BillboardGui")
@@ -319,9 +361,9 @@ local r=Root(Char())
 if best and r then r.CFrame=best.CFrame+Vector3.new(0,5,0) Notify("SAIDA") else Notify("SAIDA NAO ACHADA") end
 end)
 end)
-TSpider.MouseButton1Click:Connect(function() spiderEspOn=not spiderEspOn SetTog(TSpider,TSD,spiderEspOn) end)
-TItem.MouseButton1Click:Connect(function() itemEspOn=not itemEspOn SetTog(TItem,TID,itemEspOn) end)
-TPlayer.MouseButton1Click:Connect(function() playerEspOn=not playerEspOn SetTog(TPlayer,TPD,playerEspOn) end)
+TSpider.MouseButton1Click:Connect(function() spiderEspOn=not spiderEspOn SetTog(TSpider,TSD,spiderEspOn) if not spiderEspOn then ClearEsp() end end)
+TItem.MouseButton1Click:Connect(function() itemEspOn=not itemEspOn SetTog(TItem,TID,itemEspOn) if not itemEspOn then ClearEsp() end end)
+TPlayer.MouseButton1Click:Connect(function() playerEspOn=not playerEspOn SetTog(TPlayer,TPD,playerEspOn) if not playerEspOn then ClearEsp() end end)
 TWeb.MouseButton1Click:Connect(function()
 webOff=not webOff
 SetTog(TWeb,TWD,webOff)
@@ -441,11 +483,18 @@ if sw then for _,c in ipairs(sw:GetChildren()) do c:Destroy() end end
 end
 end)
 end
+for k,v in pairs(espC) do
+local ok=true
+pcall(function()
+if not k or not k.Parent then ok=false end
+end)
+if not ok then pcall(function() v:Destroy() end) espC[k]=nil end
+end
 if itemEspOn then
 for _,it in ipairs(Grabbables()) do
 local ad=it
 if it:IsA("Tool") then ad=it:FindFirstChild("Handle") end
-if ad and not espC[ad] then espC[ad]=MkEsp(ad,Color3.fromRGB(0,255,120),it.Name) end
+if ad and not espC[ad] then espC[ad]=MkEsp(ad,Color3.fromRGB(0,255,120),ItemName(it)) end
 end
 end
 if playerEspOn then
