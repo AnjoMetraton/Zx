@@ -440,11 +440,28 @@ UIS.InputChanged:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserI
 UIS.InputEnded:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1) then dragPop=false if not moved then task.spawn(OpenMenu) end end end)
 UIS.JumpRequest:Connect(function() if jumpOn then local ch=Char() if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end end end end)
 task.spawn(function()
-while task.wait(0.5) do
+local phase=0
+while task.wait(0.6) do
 pcall(function()
 if farmOn then
+phase=phase+1
+if phase%2==1 then
 local g=Grabbables()
 if #g>0 then TakeItem(g[1]) end
+else
+local ds=Doors()
+local r=Root(Char())
+local best=nil
+local bd=99999
+for _,m in ipairs(ds) do
+local p=m:FindFirstChildWhichIsA("BasePart",true)
+if p and r then
+local d=(r.Position-p.Position).Magnitude
+if d<bd then bd=d best=m end
+end
+end
+if best then ToggleDoor(best) end
+end
 end
 if doorOn then
 local ds=Doors()
