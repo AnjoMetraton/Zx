@@ -440,27 +440,71 @@ UIS.InputChanged:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserI
 UIS.InputEnded:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1) then dragPop=false if not moved then task.spawn(OpenMenu) end end end)
 UIS.JumpRequest:Connect(function() if jumpOn then local ch=Char() if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end end end end)
 task.spawn(function()
-local phase=0
+local tries={}
+local fails={}
+local lastIt=""
+local lastN=0
+local function HeldTool()
+local ch=Char()
+if ch then
+local t=ch:FindFirstChildOfClass("Tool")
+if t then return t end
+end
+local bp=LP:FindFirstChildOfClass("Backpack")
+if bp then return bp:FindFirstChildOfClass("Tool") end
+return nil
+end
+local function DoorOpen(m)
+local p=m:FindFirstChildWhichIsA("BasePart",true)
+if not p then return true end
+local k=tostring(m:GetDebugId())
+local old=tries[k]
+if not old then tries[k]=p.Position return false end
+if (old-p.Position).Magnitude>1.5 then return true end
+return false
+end
 while task.wait(0.6) do
 pcall(function()
 if farmOn then
-phase=phase+1
-if phase%2==1 then
-local g=Grabbables()
-if #g>0 then TakeItem(g[1]) end
-else
-local ds=Doors()
 local r=Root(Char())
+local ds=Doors()
 local best=nil
 local bd=99999
 for _,m in ipairs(ds) do
+local k=tostring(m:GetDebugId())
+if not fails[k] then
 local p=m:FindFirstChildWhichIsA("BasePart",true)
-if p and r then
+if p and r and not DoorOpen(m) then
 local d=(r.Position-p.Position).Magnitude
 if d<bd then bd=d best=m end
 end
 end
-if best then ToggleDoor(best) end
+end
+local held=HeldTool()
+if best and held then
+ToggleDoor(best)
+task.wait(0.8)
+local k=tostring(best:GetDebugId())
+if DoorOpen(best) then fails[k]=true Notify("PORTA ABERTA") end
+else
+local g=Grabbables()
+local gi=1
+while g[gi] do
+local it=g[gi]
+local nm=""
+pcall(function() nm=ItemName(it) end)
+if fails["it_"..nm] then gi=gi+1 else break end
+end
+if g[gi] then
+local nm=""
+pcall(function() nm=ItemName(g[gi]) end)
+if nm==lastIt then lastN=lastN+1 else lastIt=nm lastN=0 end
+if lastN>=3 then fails["it_"..nm]=true lastN=0 lastIt="" end
+TakeItem(g[gi])
+else
+for k,_ in pairs(tries) do tries[k]=nil end
+for k,_ in pairs(fails) do if string.sub(k,1,3)=="it_" then fails[k]=nil end end
+end
 end
 end
 if doorOn then
