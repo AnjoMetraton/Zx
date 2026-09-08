@@ -313,9 +313,9 @@ local tx=""
 pcall(function() tx=string.lower(b.Text) end)
 for _,k in ipairs(keyWords) do
 if tx~="" and string.find(tx,k) then
-if firesignal then firesignal(b.MouseButton1Click)
-elseif fireclickdetector then fireclickdetector(b) end
+if firesignal then pcall(function() firesignal(b.MouseButton1Click) end) end
 break
+end
 end
 end
 end
