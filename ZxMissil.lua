@@ -36,6 +36,8 @@ local jumpOn=false
 local afkOn=true
 local fbOn=false
 local fpsOn=false
+local realPlayOn=false
+local keyWords={"launch","fire","build","buy","claim","collect","upgrade","spin","play","start","deploy","confirm","attack","rebirth"}
 local origB=nil
 local origC=nil
 local flyBV=nil
@@ -207,6 +209,9 @@ Section(P1,"MACROS AUTO")
 BM1=BigBtn(P1,"MACRO 1 GRAVAR")
 BM2=BigBtn(P1,"MACRO 2 GRAVAR")
 BM3=BigBtn(P1,"MACRO 3 GRAVAR")
+Section(P1,"JOGADOR REAL")
+TReal,TRD=MakeRow(P1,"AUTO PLAYER",false)
+BPrompts=BigBtn(P1,"USAR PROMPTS")
 Section(P1,"SPY REDE")
 TSpy,TSD=MakeRow(P1,"SPY BYTENET",true)
 PktInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,60),BackgroundColor3=Color3.fromRGB(10,6,4),BorderSizePixel=0,Text="LANCE 1 MISSIL MANUAL",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(215,170,130),TextSize=11,TextWrapped=true,Parent=P1})
@@ -275,6 +280,51 @@ end
 end)
 end
 TSpy.MouseButton1Click:Connect(function() spyOn=not spyOn SetTog(TSpy,TSD,spyOn) end)
+TReal.MouseButton1Click:Connect(function() realPlayOn=not realPlayOn SetTog(TReal,TRD,realPlayOn) Notify(realPlayOn and "PLAYER ON" or "PLAYER OFF") end)
+BPrompts.MouseButton1Click:Connect(function()
+task.spawn(function()
+local n=0
+for _,v in ipairs(workspace:GetDescendants()) do
+if v:IsA("ProximityPrompt") then
+pcall(function()
+if fireproximityprompt then fireproximityprompt(v) else v:InputHoldBegin() v:InputHoldEnd() end
+n=n+1
+end)
+end
+end
+Notify("PROMPTS "..n)
+end)
+end)
+task.spawn(function()
+while task.wait(1.5) do
+pcall(function()
+if realPlayOn then
+local pg=LP:FindFirstChildOfClass("PlayerGui")
+if pg then
+for _,b in ipairs(pg:GetDescendants()) do
+if b:IsA("TextButton") and b.Visible then
+local okVis=true
+pcall(function()
+local a=b.AbsoluteSize
+if a.X<5 or a.Y<5 then okVis=false end
+end)
+if okVis then
+local tx=""
+pcall(function() tx=string.lower(b.Text) end)
+for _,k in ipairs(keyWords) do
+if tx~="" and string.find(tx,k) then
+if firesignal then firesignal(b.MouseButton1Click)
+elseif fireclickdetector then fireclickdetector(b) end
+break
+end
+end
+end
+end
+end
+end
+end)
+end
+end)
 TCity.MouseButton1Click:Connect(function()
 cityEspOn=not cityEspOn
 SetTog(TCity,TCD,cityEspOn)
