@@ -29,7 +29,7 @@ end)
 end
 local CTRL_ON=false
 local MODE="CIMA"
-local CTRL_DIST=10
+local CTRL_DIST=12
 local CTRL_MAX=28
 local SEL=1
 local SELX=0
@@ -199,38 +199,6 @@ t.Activated:Connect(function() TryGrab() end)
 t.Parent=bp
 Notify("FERRAMENTA OK")
 end
-local function Build()
-local n=#blocks
-for i,b in ipairs(blocks) do
-local off=CFrame.new(0,8,0)
-if MODE=="CIMA" then
-local a=(i-1)/math.max(n,1)*math.pi*2
-local ring=math.floor((i-1)/8)
-local rad=4.5+ring*2.5+CTRL_DIST*0.25
-off=CFrame.new(math.cos(a)*rad,7+ring*1.6+CTRL_DIST*0.25,math.sin(a)*rad)
-elseif MODE=="ASA" then
-local side=1
-if i%2==0 then side=-1 end
-local row=math.floor((i-1)/2)
-local spread=3.2+row*1.1+CTRL_DIST*0.12
-off=CFrame.new(side*spread,2.6+row*0.95,-2.6-row*0.45)
-elseif MODE=="CASA" then
-local w=(i-1)%4
-local lvl=math.floor((i-1)/4)%3
-local d=math.max(4.2,CTRL_DIST*0.5)
-if w==0 then off=CFrame.new(-d,1.2+lvl*2.2,0) end
-if w==1 then off=CFrame.new(d,1.2+lvl*2.2,0) end
-if w==2 then off=CFrame.new(0,1.2+lvl*2.2,-d) end
-if w==3 then off=CFrame.new(0,7.6,d*0.55) end
-else
-local col=(i-1)%5
-local row2=math.floor((i-1)/5)
-off=CFrame.new((col-2)*3,6.5+row2*1.6,0)
-if i==SEL then off=off*CFrame.new(SELX,SELY,SELZ) end
-end
-b.off=off
-end
-end
 local function Refresh()
 local hrp=Root(Char())
 if not hrp then return end
@@ -267,26 +235,26 @@ local off=CFrame.new(0,8,0)
 if MODE=="CIMA" then
 local a=(i-1)/math.max(n,1)*math.pi*2
 local ring=math.floor((i-1)/8)
-local rad=4.5+ring*2.5+CTRL_DIST*0.25
-off=CFrame.new(math.cos(a)*rad,7+ring*1.6+CTRL_DIST*0.25,math.sin(a)*rad)
+local rad=5.5+ring*2.8+CTRL_DIST*0.3
+off=CFrame.new(math.cos(a)*rad,8+ring*1.8+CTRL_DIST*0.3,math.sin(a)*rad)
 elseif MODE=="ASA" then
 local side=1
 if i%2==0 then side=-1 end
 local row=math.floor((i-1)/2)
-local spread=3.2+row*1.1+CTRL_DIST*0.12
-off=CFrame.new(side*spread,2.6+row*0.95,-2.6-row*0.45)
+local spread=4+row*1.3+CTRL_DIST*0.15
+off=CFrame.new(side*spread,3.2+row*1.05,-3.2-row*0.5)
 elseif MODE=="CASA" then
 local w=(i-1)%4
 local lvl=math.floor((i-1)/4)%3
-local d=math.max(4.2,CTRL_DIST*0.5)
+local d=math.max(5.2,CTRL_DIST*0.6)
 if w==0 then off=CFrame.new(-d,1.2+lvl*2.2,0) end
 if w==1 then off=CFrame.new(d,1.2+lvl*2.2,0) end
 if w==2 then off=CFrame.new(0,1.2+lvl*2.2,-d) end
-if w==3 then off=CFrame.new(0,7.6,d*0.55) end
+if w==3 then off=CFrame.new(0,8.8,d*0.55) end
 else
 local col=(i-1)%5
 local row2=math.floor((i-1)/5)
-off=CFrame.new((col-2)*3,6.5+row2*1.6,0)
+off=CFrame.new((col-2)*3.4,7.5+row2*1.8,0)
 if i==SEL then off=off*CFrame.new(SELX,SELY,SELZ) end
 end
 b.off=off
