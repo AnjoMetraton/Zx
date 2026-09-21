@@ -5,6 +5,13 @@ local TS=game:GetService("TweenService")
 local Lighting=game:GetService("Lighting")
 repeat task.wait() until Players.LocalPlayer
 local LP=Players.LocalPlayer
+local GEN=(_G.ZxGen or 0)+1
+_G.ZxGen=GEN
+pcall(function()
+local old=LP.PlayerGui:FindFirstChild("ZxDestruction")
+if old then old:Destroy() end
+end)
+pcall(function() RS:UnbindFromRenderStep("ZxFix") end)
 local function RGB(t)
 return Color3.fromRGB(math.floor(math.sin(t*1.8)*127+128),math.floor(math.sin(t*1.8+2.094)*127+128),math.floor(math.sin(t*1.8+4.189)*127+128))
 end
@@ -67,7 +74,7 @@ LCard=New("Frame",{Size=UDim2.new(0,310,0,220),Position=UDim2.new(0.5,-155,0.5,-
 New("UICorner",{CornerRadius=UDim.new(0,14),Parent=LCard})
 LS=New("UIStroke",{Color=Color3.fromRGB(120,0,255),Thickness=1.5,Transparency=0.15,Parent=LCard})
 LSym=New("TextLabel",{Size=UDim2.new(1,0,0,36),Position=UDim2.new(0,0,0,12),BackgroundTransparency=1,Text="ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=26,ZIndex=13,Parent=LCard})
-LTitle=New("TextLabel",{Size=UDim2.new(1,0,0,28),Position=UDim2.new(0,0,0,50),BackgroundTransparency=1,Text="ZX DESTRUCTION V2",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=19,ZIndex=13,Parent=LCard})
+LTitle=New("TextLabel",{Size=UDim2.new(1,0,0,28),Position=UDim2.new(0,0,0,50),BackgroundTransparency=1,Text="ZX DESTRUCTION V2026",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=19,ZIndex=13,Parent=LCard})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,80,255)),ColorSequenceKeypoint.new(0.5,Color3.new(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,200,255))}),Parent=LTitle})
 LSub=New("TextLabel",{Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,80),BackgroundTransparency=1,Text="OTIMIZADO PARA CELULAR",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(100,60,180),TextSize=10,ZIndex=13,Parent=LCard})
 LBTrack=New("Frame",{Size=UDim2.new(0.82,0,0,4),Position=UDim2.new(0.09,0,0,112),BackgroundColor3=Color3.fromRGB(8,5,15),BorderSizePixel=0,ZIndex=13,Parent=LCard})
@@ -133,7 +140,9 @@ local showAimBtn=true
 local stealthOn=false
 local lockedPlayer=nil
 local aimPart="Head"
-local partMap={Cabeca="Head",Pescoco="Neck",Peito="UpperTorso",Barriga="LowerTorso",Braco="RightUpperArm",Perna="RightUpperLeg",Pe="RightFoot",Root="HumanoidRootPart"}
+local savedPos=nil
+local afkT=0
+local partMap={Head="Head",Cabeca="Head",Pescoco="Neck",Neck="Neck",Peito="UpperTorso",Barriga="LowerTorso",Torso="UpperTorso",Braco="RightUpperArm",Perna="RightUpperLeg",Pe="RightFoot",Root="HumanoidRootPart"}
 local espCache={}
 local espNameCache={}
 local tracerCache={}
@@ -441,7 +450,7 @@ New("UICorner",{CornerRadius=UDim.new(0,8),Parent=BDown})
 TSpeed,TSpeedD=MakeRow(P3,"SPEED",false)
 MakeSlider(P3,"VALOR SPEED",16,150,24,function(v) speedVal=v end)
 TInf,TInfD=MakeRow(P3,"PULO INFINITO",false)
-MakeSlider(P3,"FORCA PULO",20,200,50,function(v) jumpPower=v local ch=LP.Character if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h.JumpPower=v end end end)
+MakeSlider(P3,"FORCA PULO",20,200,50,function(v) jumpPower=v local ch=LP.Character if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h.JumpPower=v pcall(function() h.JumpHeight=v*0.144 end) end end end)
 TNoc,TNocD=MakeRow(P3,"NOCLIP",false)
 TSpin,TSpinD=MakeRow(P3,"SPIN",false)
 MakeSlider(P3,"VEL SPIN",5,100,20,function(v) spinSpeed=v end)
@@ -451,6 +460,18 @@ TFb,TFbD=MakeRow(P3,"FULLBRIGHT",false)
 TFps,TFpsD=MakeRow(P3,"FPS BOOST",false)
 MakeSlider(P3,"FOV CAMERA",40,120,70,function(v) camFov=v local c=workspace.CurrentCamera if c then c.FieldOfView=v end end)
 TVoid,TVoidD=MakeRow(P3,"ANTI VOID",false)
+BSavePos=MakeBtn(P3,"SALVAR POS",false)
+BLoadPos=MakeBtn(P3,"VOLTAR POS",false)
+BSavePos.MouseButton1Click:Connect(function()
+local ch=LP.Character
+local r=ch and ch:FindFirstChild("HumanoidRootPart")
+if r then savedPos=r.CFrame Notify("POS SALVA") else Notify("SEM PERSONAGEM") end
+end)
+BLoadPos.MouseButton1Click:Connect(function()
+local ch=LP.Character
+local r=ch and ch:FindFirstChild("HumanoidRootPart")
+if r and savedPos then r.CFrame=savedPos Notify("TELEPORTADO") else Notify("SEM POS SALVA") end
+end)
 Section(P4,"MEU TIME AUTO")
 TAuto,TDAuto=MakeRow(P4,"AUTO DETECT TIME",true)
 TeamRow=New("Frame",{Size=UDim2.new(0.92,0,0,44),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Parent=P4})
@@ -659,6 +680,7 @@ SetBtn(BCircle,rgbCircleOn)
 Notify("RGB CIRCULO "..(rgbCircleOn and "ON" or "OFF"))
 end)
 AimBtn.MouseButton1Click:Connect(function()
+if aimSupp then return end
 aimFixOn=not aimFixOn
 SetTxt(BFix,aimFixOn and "AIMBOT FIX ON" or "AIMBOT FIX OFF")
 SetBtn(BFix,aimFixOn)
@@ -732,9 +754,9 @@ Notify("FPS BOOST "..(fpsBoostOn and "ON" or "OFF"))
 end)
 TVoid.MouseButton1Click:Connect(function() antiVoidOn=not antiVoidOn SetTog(TVoid,TVoidD,antiVoidOn) Notify("ANTI VOID "..(antiVoidOn and "ON" or "OFF")) end)
 TAuto.MouseButton1Click:Connect(function() autoTeam=not autoTeam SetTog(TAuto,TDAuto,autoTeam) if autoTeam then AutoDetect(false) else Notify("AUTO TIME OFF") end end)
-TRed.MouseButton1Click:Connect(function() autoTeam=false SetTog(TAuto,TDAuto,false) myTeam="red" Notify("TIME VERMELHO MANUAL") end)
-TBlue.MouseButton1Click:Connect(function() autoTeam=false SetTog(TAuto,TDAuto,false) myTeam="blue" Notify("TIME AZUL MANUAL") end)
-TClear.MouseButton1Click:Connect(function() autoTeam=false SetTog(TAuto,TDAuto,false) myTeam=nil Notify("TIME LIMPO MANUAL") end)
+TRed.MouseButton1Click:Connect(function() autoTeam=false SetTog(TAuto,TDAuto,false) myTeam="red" TRed.BackgroundColor3=Color3.fromRGB(70,10,10) TBlue.BackgroundColor3=Color3.fromRGB(5,12,35) Notify("TIME VERMELHO MANUAL") end)
+TBlue.MouseButton1Click:Connect(function() autoTeam=false SetTog(TAuto,TDAuto,false) myTeam="blue" TBlue.BackgroundColor3=Color3.fromRGB(8,26,66) TRed.BackgroundColor3=Color3.fromRGB(35,5,5) Notify("TIME AZUL MANUAL") end)
+TClear.MouseButton1Click:Connect(function() autoTeam=false SetTog(TAuto,TDAuto,false) myTeam=nil TRed.BackgroundColor3=Color3.fromRGB(35,5,5) TBlue.BackgroundColor3=Color3.fromRGB(5,12,35) Notify("TIME LIMPO MANUAL") end)
 TCross.MouseButton1Click:Connect(function() showCross=not showCross SetTog(TCross,TCrossD,showCross) Cross.Visible=showCross Notify("CROSSHAIR "..(showCross and "ON" or "OFF")) end)
 TRgbC.MouseButton1Click:Connect(function() rgbCross=not rgbCross SetTog(TRgbC,TRgbCD,rgbCross) Notify("RGB CROSS "..(rgbCross and "ON" or "OFF")) end)
 TDot.MouseButton1Click:Connect(function() showDot=not showDot SetTog(TDot,TDotD,showDot) CDot.Visible=showDot Notify("PONTO "..(showDot and "ON" or "OFF")) end)
@@ -754,15 +776,35 @@ end)
 end
 BKeys.MouseButton1Click:Connect(openKeys)
 BReset.MouseButton1Click:Connect(function()
-aimOn=false aimFixOn=false espOn=false hitboxOn=false flyOn=false speedOn=false noclipOn=false spinOn=false tracerOn=false
+aimOn=false aimFixOn=false rgbCircleOn=false espOn=false rgbEspOn=false rgbNameOn=false hitboxOn=false rgbHitboxOn=false flyOn=false speedOn=false infJumpOn=false noclipOn=false spinOn=false antiAfkOn=false tracerOn=false flyUp=false flyDown=false
 SetTxt(BAim,"MIRA OFF") SetBtn(BAim,false)
 SetTxt(BFix,"AIMBOT FIX OFF") SetBtn(BFix,false)
+SetTxt(BCircle,"RGB CIRCULO OFF") SetBtn(BCircle,false)
 SetTxt(BEsp,"ESP OFF") SetBtn(BEsp,false)
+SetTxt(BRgbEsp,"RGB ESP OFF") SetBtn(BRgbEsp,false)
+SetTxt(BRgbName,"NOME RGB OFF") SetBtn(BRgbName,false)
+SetTog(HBRowT,HBRowD,false)
+SetTog(HRgb,HRgbD,false)
+SetTog(TFly,TFlyD,false)
+SetTog(TSpeed,TSpeedD,false)
+SetTog(TInf,TInfD,false)
+SetTog(TNoc,TNocD,false)
+SetTog(TSpin,TSpinD,false)
+SetTog(TAfk,TAfkD,false)
+SetTog(TTrace,TDTrace,false)
+if fullbrightOn then
+fullbrightOn=false
+SetTog(TFb,TFbD,false)
+if origLight.B then Lighting.Brightness=origLight.B Lighting.ClockTime=origLight.C Lighting.FogEnd=origLight.F Lighting.GlobalShadows=origLight.G Lighting.OutdoorAmbient=origLight.A end
+end
 Circle.Visible=false LockF.Visible=false
 restoreHb()
 for _,p in ipairs(Players:GetPlayers()) do remEsp(p) remTrace(p) end
 if flyBV then pcall(function() flyBV:Destroy() end) flyBV=nil end
 if flyGyro then pcall(function() flyGyro:Destroy() end) flyGyro=nil end
+local ch=LP.Character
+if ch then local h=ch:FindFirstChildOfClass("Humanoid") if h then h.WalkSpeed=16 end end
+lockedPlayer=nil
 resetCam()
 Notify("TUDO RESETADO")
 end)
@@ -801,7 +843,7 @@ Panel.Position=UDim2.new(pStart.X.Scale,pStart.X.Offset+d.X,pStart.Y.Scale,pStar
 end
 end)
 UIS.InputEnded:Connect(function(i)
-if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then dragP=false end
+if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then dragP=false flyUp=false flyDown=false end
 end)
 local dragPop=false
 local ppStart=nil
@@ -824,6 +866,7 @@ local dragAim=false
 local paStart=nil
 local aStart=nil
 local aMoved=false
+local aimSupp=false
 AimBtn.InputBegan:Connect(function(i)
 if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then dragAim=true aMoved=false paStart=i.Position aStart=AimBtn.Position end
 end)
@@ -836,7 +879,7 @@ end)
 UIS.InputEnded:Connect(function(i)
 if dragAim and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1) then
 dragAim=false
-if aMoved then return end
+if aMoved then aimSupp=true task.delay(0.3,function() aimSupp=false end) return end
 end
 end)
 UIS.JumpRequest:Connect(function()
@@ -847,8 +890,25 @@ for _,p in ipairs(Players:GetPlayers()) do
 if p~=LP then p.CharacterAdded:Connect(function(c) c:WaitForChild("HumanoidRootPart",5) remEsp(p) remTrace(p) hitboxOrig[p]=nil end) end
 end
 LP.CharacterAdded:Connect(function(c) c:WaitForChild("HumanoidRootPart",5) task.wait(1) if autoTeam then AutoDetect(false) end end)
+LP.CharacterAdded:Connect(function(c)
+lockedPlayer=nil
+local r=c:WaitForChild("HumanoidRootPart",5)
+if flyOn and r then
+pcall(function() if flyBV then flyBV:Destroy() end end)
+pcall(function() if flyGyro then flyGyro:Destroy() end end)
+flyBV=Instance.new("BodyVelocity") flyBV.MaxForce=Vector3.new(9e9,9e9,9e9) flyBV.Velocity=Vector3.new(0,0,0) flyBV.Parent=r
+flyGyro=Instance.new("BodyGyro") flyGyro.MaxTorque=Vector3.new(9e9,9e9,9e9) flyGyro.CFrame=r.CFrame flyGyro.Parent=r
+end
+local h=c:WaitForChild("Humanoid",5)
+if h then
+if speedOn then h.WalkSpeed=speedVal end
+h.JumpPower=jumpPower
+pcall(function() h.JumpHeight=jumpPower*0.144 end)
+end
+end)
 task.spawn(function()
 while task.wait(1) do
+if _G.ZxGen~=GEN then break end
 if autoTeam then pcall(function() AutoDetect(true) end) end
 end
 end)
@@ -1010,7 +1070,7 @@ if noclipOn then
 local ch=LP.Character
 if ch then for _,v in pairs(ch:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide=false end end end
 end
-if antiAfkOn then pcall(function() game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame) task.wait(0.2) game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0)) end) end
+if antiAfkOn and (tick()-afkT)>300 then afkT=tick() task.spawn(function() pcall(function() game:GetService("VirtualUser"):Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame) task.wait(1) game:GetService("VirtualUser"):Button2Up(Vector2.new(0,0)) end) end) end
 if hitboxOn then
 local t=tick()
 local bc=rgbHitboxOn and RGB(t) or Color3.fromRGB(120,0,255)
@@ -1062,6 +1122,7 @@ h.FillColor=ec
 h.OutlineColor=Color3.fromRGB(190,130,255)
 h.FillTransparency=espTrans
 h.OutlineTransparency=0.08
+h.DepthMode=Enum.HighlightDepthMode.AlwaysOnTop
 h.Adornee=ch
 h.Parent=ch
 espCache[p]=h
@@ -1133,11 +1194,12 @@ LSym.TextColor3=RGB(i*0.05)
 LStat.Text=msgs[math.clamp(math.floor(i/21)+1,1,#msgs)]
 task.wait(0.018)
 end
+if _G.ZxGen~=GEN then return end
 Tween(BG,{BackgroundTransparency=1},0.5)
 Tween(LCard,{BackgroundTransparency=1},0.4)
 task.wait(0.5)
 BG:Destroy()
 Panel.Visible=true
 Tween(Panel,{Position=UDim2.new(0.5,-167,0.5,-270)},0.55)
-Notify("ZX DESTRUCTION CARREGADO")
+Notify("ZX V2026 CARREGADO")
 end)
