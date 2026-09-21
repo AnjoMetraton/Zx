@@ -142,6 +142,7 @@ local lockedPlayer=nil
 local aimPart="Head"
 local savedPos=nil
 local afkT=0
+local aimSupp=false
 local partMap={Head="Head",Cabeca="Head",Pescoco="Neck",Neck="Neck",Peito="UpperTorso",Barriga="LowerTorso",Torso="UpperTorso",Braco="RightUpperArm",Perna="RightUpperLeg",Pe="RightFoot",Root="HumanoidRootPart"}
 local espCache={}
 local espNameCache={}
@@ -866,7 +867,6 @@ local dragAim=false
 local paStart=nil
 local aStart=nil
 local aMoved=false
-local aimSupp=false
 AimBtn.InputBegan:Connect(function(i)
 if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then dragAim=true aMoved=false paStart=i.Position aStart=AimBtn.Position end
 end)
