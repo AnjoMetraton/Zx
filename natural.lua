@@ -35,6 +35,19 @@ local SEL=1
 local SELX=0
 local SELY=0
 local SELZ=0
+local TOOLN="ZXGrab"
+local SELB=nil
+local SELBOX=nil
+local ORIGA=false
+local ORIGC=true
+local MOVL=false
+local MOVR=false
+local MOVU=false
+local MOVD=false
+local MOVSPD=8
+local Pad=nil
+local PadSpdFill=nil
+local PadSpdLab=nil
 local VOID_ON=true
 local speedOn=false
 local speedVal=30
@@ -77,6 +90,106 @@ local s=p.Size
 if s.Magnitude>45 or s.Magnitude<0.5 then return false end
 if not p.Parent then return false end
 return true
+end
+local function ToolInHand()
+local ch=Char()
+if not ch then return nil end
+local t=nil
+pcall(function() t=ch:FindFirstChild(TOOLN) end)
+return t
+end
+local function UpdatePad()
+local ok=SELB~=nil and SELB.Parent~=nil and ToolInHand()~=nil
+if Pad then Pad.Visible=ok end
+end
+local function Straighten(p)
+pcall(function()
+local cf=p.CFrame
+local _,yw,_=cf:ToEulerAnglesYXZ()
+local dg=math.deg(yw)
+dg=math.floor((dg+45)/90)*90
+p.CFrame=CFrame.new(cf.Position)*CFrame.Angles(0,math.rad(dg),0)
+end)
+end
+local function ReleaseBlock()
+if SELBOX then pcall(function() SELBOX:Destroy() end) SELBOX=nil end
+if SELB then
+pcall(function() SELB.Anchored=ORIGA SELB.CanCollide=ORIGC end)
+SELB=nil
+end
+MOVL=false
+MOVR=false
+MOVU=false
+MOVD=false
+UpdatePad()
+end
+local function SelectBlock(p)
+if not p or not p.Parent then return end
+if SELB==p then return end
+ReleaseBlock()
+SELB=p
+pcall(function() ORIGA=p.Anchored ORIGC=p.CanCollide end)
+pcall(function() p.Anchored=true p.CanCollide=false end)
+Straighten(p)
+SELBOX=Instance.new("SelectionBox")
+SELBOX.LineThickness=0.08
+SELBOX.SurfaceTransparency=1
+SELBOX.Color3=Color3.fromRGB(0,255,170)
+SELBOX.Adornee=p
+SELBOX.Parent=p
+UpdatePad()
+Notify("BLOCO OK")
+end
+local function TryGrab()
+local cam=workspace.CurrentCamera
+if not cam then return end
+if not ToolInHand() then return end
+local ch=Char()
+local hrp=Root(ch)
+local org=cam.CFrame.Position
+local dir=cam.CFrame.LookVector*90
+local pr=RaycastParams.new()
+pr.FilterType=Enum.RaycastFilterType.Blacklist
+if ch then pr.FilterDescendantsInstances={ch} end
+local hit=nil
+pcall(function() hit=workspace:Raycast(org,dir,pr) end)
+if hit and hit.Instance and hit.Instance:IsA("BasePart") and ValidBlock(hit.Instance,hrp) then
+SelectBlock(hit.Instance)
+return
+end
+local best=nil
+local bd=99999
+local c=Vector2.new(cam.ViewportSize.X/2,cam.ViewportSize.Y/2)
+for _,v in ipairs(workspace:GetDescendants()) do
+if v:IsA("BasePart") and not v.Anchored and not IsCharPart(v) then
+local sp=nil
+local on=false
+pcall(function() sp,on=cam:WorldToViewportPoint(v.Position) end)
+if on then
+local dd=99999
+pcall(function() dd=(hrp.Position-v.Position).Magnitude end)
+local sd=(Vector2.new(sp.X,sp.Y)-c).Magnitude
+if sd<160 and dd<90 and dd<bd and ValidBlock(v,hrp) then bd=dd best=v end
+end
+end
+end
+if best then SelectBlock(best) else Notify("MIRE NO BLOCO") end
+end
+local function GiveTool()
+local bp=nil
+pcall(function() bp=LP:WaitForChild("Backpack") end)
+if not bp then return end
+if bp:FindFirstChild(TOOLN) or ToolInHand() then Notify("JA TEM") return end
+local t=Instance.new("Tool")
+t.Name=TOOLN
+t.RequiresHandle=false
+t.CanBeDropped=false
+t.ToolTip="Toque no bloco"
+t.Equipped:Connect(function() UpdatePad() Notify("TOQUE NO BLOCO") end)
+t.Unequipped:Connect(function() ReleaseBlock() end)
+t.Activated:Connect(function() TryGrab() end)
+t.Parent=bp
+Notify("FERRAMENTA OK")
 end
 local function Build()
 local n=#blocks
@@ -317,6 +430,9 @@ BDM=New("TextButton",{Size=UDim2.new(0.48,0,0,34),Position=UDim2.new(0,0,0,3),Ba
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=BDM})
 BDP=New("TextButton",{Size=UDim2.new(0.48,0,0,34),Position=UDim2.new(0.52,0,0,3),BackgroundColor3=Color3.fromRGB(3,11,9),BorderSizePixel=0,Text="DIST MAIS",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=11,AutoButtonColor=false,Parent=DistRow})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=BDP})
+Section("FERRAMENTA MAO")
+BTool=BigBtn("PEGAR FERRAMENTA")
+BGrab=BigBtn("PEGAR BLOCO DA MIRA")
 Section("DESENHO BLOCO A BLOCO")
 SelLab=New("TextLabel",{Size=UDim2.new(0.92,0,0,24),BackgroundColor3=Color3.fromRGB(3,11,9),BorderSizePixel=0,Text="BLOCO 1",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,210,195),TextSize=11,Parent=Scroll})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=SelLab})
@@ -351,6 +467,46 @@ TFb,TFD2=MakeRow("FULLBRIGHT",false)
 Pop=New("TextButton",{Size=UDim2.new(0,58,0,30),Position=UDim2.new(1,-70,0,60),BackgroundColor3=Color3.fromRGB(2,12,10),BorderSizePixel=0,Text="ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,255,225),TextSize=12,Visible=false,Parent=SG})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=Pop})
 Nh=New("Frame",{Size=UDim2.new(0,270,0,200),Position=UDim2.new(0.5,-135,0.78,0),BackgroundTransparency=1,BorderSizePixel=0,Parent=SG})
+Pad=New("Frame",{Size=UDim2.new(0,190,0,242),Position=UDim2.new(1,-202,0.5,-121),BackgroundColor3=Color3.fromRGB(2,12,10),BackgroundTransparency=0.1,BorderSizePixel=0,Visible=false,Parent=SG})
+New("UICorner",{CornerRadius=UDim.new(0,14),Parent=Pad})
+New("UIStroke",{Color=Color3.fromRGB(0,200,160),Thickness=1.5,Transparency=0.3,Parent=Pad})
+New("TextLabel",{Size=UDim2.new(1,0,0,20),Position=UDim2.new(0,0,0,6),BackgroundTransparency=1,Text="BLOCO",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,255,225),TextSize=11,Parent=Pad})
+local function PadBtn(txt,x,y)
+local b=New("TextButton",{Size=UDim2.new(0,56,0,56),Position=UDim2.new(0,x,0,y),BackgroundColor3=Color3.fromRGB(5,30,25),BorderSizePixel=0,Text=txt,Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=20,AutoButtonColor=false,Parent=Pad})
+New("UICorner",{CornerRadius=UDim.new(0.5,0),Parent=b})
+return b
+end
+local PadU=PadBtn("▲",67,28)
+local PadL=PadBtn("◀",5,90)
+local PadR=PadBtn("▶",129,90)
+local PadD=PadBtn("▼",67,152)
+PadSpdLab=New("TextLabel",{Size=UDim2.new(1,0,0,14),Position=UDim2.new(0,0,1,-32),BackgroundTransparency=1,Text="VEL 8",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,255,225),TextSize=10,Parent=Pad})
+PadSpdFill=New("Frame",{Size=UDim2.new(0.4,0,0,4),Position=UDim2.new(0.3,0,1,-14),BackgroundColor3=Color3.fromRGB(0,200,160),BorderSizePixel=0,Parent=Pad})
+New("UICorner",{CornerRadius=UDim.new(0,2),Parent=PadSpdFill})
+local function Hold(b,set)
+b.InputBegan:Connect(function(i)
+if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then set(true) end
+end)
+b.InputEnded:Connect(function(i) set(false) end)
+end
+Hold(PadL,function(v) MOVL=v end)
+Hold(PadR,function(v) MOVR=v end)
+Hold(PadU,function(v) MOVU=v end)
+Hold(PadD,function(v) MOVD=v end)
+PadSpdFill.InputBegan:Connect(function(i)
+if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
+local function Up(j)
+if j.UserInputType==Enum.UserInputType.Touch or j.UserInputType==Enum.UserInputType.MouseMovement then
+local x=math.clamp((j.Position.X-PadSpdFill.AbsolutePosition.X)/math.max(PadSpdFill.AbsoluteSize.X,1),0,1)
+MOVSPD=2+x*18
+PadSpdLab.Text="VEL "..math.floor(MOVSPD)
+end
+end
+local c=nil
+c=UIS.InputChanged:Connect(Up)
+task.delay(3,function() pcall(function() c:Disconnect() end) end)
+end
+end)
 local flyBV=nil
 local flyGyro=nil
 local speedVal=30
@@ -374,6 +530,8 @@ end)
 BScan.MouseButton1Click:Connect(function()
 task.spawn(function() Refresh() Notify("BLOCOS "..#blocks) SelLab.Text="BLOCO "..SEL end)
 end)
+BTool.MouseButton1Click:Connect(function() GiveTool() end)
+BGrab.MouseButton1Click:Connect(function() TryGrab() end)
 BDM.MouseButton1Click:Connect(function() CTRL_DIST=math.max(4,CTRL_DIST-1) DistLab.Text="DIST "..CTRL_DIST Build() end)
 BDP.MouseButton1Click:Connect(function() CTRL_DIST=math.min(30,CTRL_DIST+1) DistLab.Text="DIST "..CTRL_DIST Build() end)
 BSM.MouseButton1Click:Connect(function() SEL=SEL-1 if SEL<1 then SEL=math.max(#blocks,1) end SelLab.Text="BLOCO "..SEL end)
@@ -424,6 +582,21 @@ local moved=false
 Pop.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then dragPop=true moved=false ppStart=i.Position puStart=Pop.Position end end)
 UIS.InputChanged:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then local d=i.Position-ppStart if d.Magnitude>6 then moved=true end Pop.Position=UDim2.new(puStart.X.Scale,puStart.X.Offset+d.X,puStart.Y.Scale,puStart.Y.Offset+d.Y) end end)
 UIS.InputEnded:Connect(function(i) if dragPop and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1) then dragPop=false if not moved then task.spawn(OpenMenu) end end end)
+LP.CharacterAdded:Connect(function(c)
+pcall(function() ReleaseBlock() end)
+c:WaitForChild("HumanoidRootPart",5)
+task.wait(0.5)
+task.spawn(function() GiveTool() end)
+local h=c:WaitForChild("Humanoid",5)
+if h then
+if speedOn then h.WalkSpeed=speedVal end
+end
+end)
+task.spawn(function()
+while task.wait(0.5) do
+pcall(function() UpdatePad() end)
+end
+end)
 task.spawn(function()
 while task.wait(1) do
 pcall(function() if CTRL_ON then Refresh() end end)
@@ -466,6 +639,20 @@ if afkOn then pcall(function() game:GetService("VirtualUser"):Button2Down(Vector
 end)
 RS.RenderStepped:Connect(function()
 PStroke.Color=RGB(tick())
+if SELB and SELB.Parent and ToolInHand() then
+pcall(function()
+local cam=workspace.CurrentCamera
+local cf=SELB.CFrame
+local step=MOVSPD*0.033
+if MOVL and cam then cf=cf+(-cam.CFrame.RightVector*step) end
+if MOVR and cam then cf=cf+(cam.CFrame.RightVector*step) end
+if MOVU then cf=cf+Vector3.new(0,step,0) end
+if MOVD then cf=cf+Vector3.new(0,-step,0) end
+SELB.CFrame=CFrame.new(cf.Position)*CFrame.Angles(0,math.rad(math.floor((math.deg(select(2,cf:ToEulerAnglesYXZ()))+45)/90)*90),0)
+end)
+else
+if SELB then ReleaseBlock() end
+end
 if CTRL_ON then
 local hrp=Root(Char())
 if hrp then
