@@ -83,7 +83,9 @@ return false
 end
 local function ValidBlock(p,hrp)
 if not p:IsA("BasePart") then return false end
-if p.Anchored then return false end
+local okA=true
+pcall(function() okA=p.Anchored end)
+if okA then return false end
 if p:IsA("Terrain") then return false end
 if IsCharPart(p) then return false end
 local s=p.Size
@@ -161,7 +163,11 @@ local best=nil
 local bd=99999
 local c=Vector2.new(cam.ViewportSize.X/2,cam.ViewportSize.Y/2)
 for _,v in ipairs(workspace:GetDescendants()) do
-if v:IsA("BasePart") and not v.Anchored and not IsCharPart(v) then
+if v:IsA("BasePart") then
+local okA=false
+pcall(function() okA=v.Anchored end)
+if not okA then
+if not IsCharPart(v) then
 local sp=nil
 local on=false
 pcall(function() sp,on=cam:WorldToViewportPoint(v.Position) end)
@@ -170,6 +176,8 @@ local dd=99999
 pcall(function() dd=(hrp.Position-v.Position).Magnitude end)
 local sd=(Vector2.new(sp.X,sp.Y)-c).Magnitude
 if sd<160 and dd<90 and dd<bd and ValidBlock(v,hrp) then bd=dd best=v end
+end
+end
 end
 end
 end
@@ -231,12 +239,18 @@ local n=0
 for _,v in ipairs(workspace:GetDescendants()) do
 if n%700==0 then task.wait() end
 n=n+1
-if v:IsA("BasePart") and not v.Anchored and not IsCharPart(v) then
+if v:IsA("BasePart") then
+local okA=false
+pcall(function() okA=v.Anchored end)
+if not okA then
+if not IsCharPart(v) then
 local s=v.Size
 if s.Magnitude<=45 and s.Magnitude>=0.5 and v.Parent then
 local d=99999
 pcall(function() d=(hrp.Position-v.Position).Magnitude end)
 if d<220 then table.insert(found,{p=v,d=d}) end
+end
+end
 end
 end
 end
@@ -659,11 +673,15 @@ if hrp then
 for _,b in ipairs(blocks) do
 local p=b.p
 if p and p.Parent then
+local okA=false
+pcall(function() okA=p.Anchored end)
+if not okA then
 pcall(function()
 p.CanCollide=false
 p.CanTouch=false
 p.CFrame=hrp.CFrame*b.off
 end)
+end
 end
 end
 end
