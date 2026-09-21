@@ -45,6 +45,66 @@ local MOVR=false
 local MOVU=false
 local MOVD=false
 local MOVSPD=8
+local RING_ON=false
+local rings={}
+local ringT=0
+local ringR=12
+local ringH=6
+local ringSpd=1
+local netOn=false
+local function ShieldPart(p)
+pcall(function()
+if _G.ZxNet and _G.ZxNetKeep then _G.ZxNetKeep(p) end
+end)
+pcall(function()
+p.CustomPhysicalProperties=PhysicalProperties.new(0,0,0,0,0)
+end)
+pcall(function() p.CanCollide=false end)
+pcall(function() p.CanTouch=false end)
+pcall(function()
+for _,x in ipairs(p:GetChildren()) do
+if x:IsA("BodyMover") or x:IsA("RocketPropulsion") then x:Destroy() end
+end
+end)
+end
+local function NetBoost()
+if netOn then return end
+netOn=true
+_G.ZxNet={}
+_G.ZxNetKeep=function(p)
+pcall(function() p.CustomPhysicalProperties=PhysicalProperties.new(0,0,0,0,0) end)
+pcall(function() p.CanCollide=false end)
+end
+pcall(function()
+LP.ReplicationFocus=workspace
+end)
+task.spawn(function()
+while netOn do
+pcall(function()
+local hid=sethiddenproperty or set_hidden_property or set_hidden_prop
+if hid then hid(LP,"SimulationRadius",math.huge) end
+end)
+task.wait(0.5)
+end
+end)
+task.spawn(function()
+while netOn do
+local dt=nil
+pcall(function() dt=RS.Heartbeat:Wait() end)
+if dt then
+pcall(function()
+for _,e in ipairs(rings) do
+local p=e.p
+if p and p.Parent then
+p.Velocity=Vector3.new(14.46,14.46,14.46)
+p.RotVelocity=Vector3.new(0,0,0)
+end
+end
+end)
+end
+end
+end)
+end
 local Pad=nil
 local PadSpdFill=nil
 local PadSpdLab=nil
@@ -227,6 +287,15 @@ blocks={}
 for i=1,math.min(CTRL_MAX,#found) do blocks[i]={p=found[i].p,off=CFrame.new(0,8,0)} end
 if SEL>#blocks then SEL=1 end
 Build()
+NetBoost()
+local hrp2=Root(Char())
+if hrp2 then
+rings={}
+for i,b in ipairs(blocks) do
+ShieldPart(b.p)
+table.insert(rings,{p=b.p,i=i})
+end
+end
 end
 local function Build()
 local n=#blocks
@@ -403,6 +472,7 @@ Tween(dot,{Position=st and UDim2.new(1,-18,0.5,-7) or UDim2.new(0,3,0.5,-7)},0.2
 end
 Section("BLOCOS")
 BCtrl=BigBtn("CONTROLE OFF")
+BRing=BigBtn("SUPER ANEL OFF")
 BMode=BigBtn("MODO CIMA")
 BScan=BigBtn("BUSCAR BLOCOS")
 DistLab=New("TextLabel",{Size=UDim2.new(0.92,0,0,24),BackgroundColor3=Color3.fromRGB(3,11,9),BorderSizePixel=0,Text="DIST 10",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,210,195),TextSize=11,Parent=Scroll})
@@ -498,6 +568,25 @@ CTRL_ON=not CTRL_ON
 SetTxt(BCtrl,CTRL_ON and "CONTROLE ON" or "CONTROLE OFF")
 SetBtn(BCtrl,CTRL_ON)
 if CTRL_ON then task.spawn(function() Refresh() Notify("BLOCOS "..#blocks) end) end
+end)
+BRing.MouseButton1Click:Connect(function()
+RING_ON=not RING_ON
+SetTxt(BRing,RING_ON and "SUPER ANEL ON" or "SUPER ANEL OFF")
+SetBtn(BRing,RING_ON)
+NetBoost()
+if RING_ON and #blocks==0 then task.spawn(function() Refresh() end) end
+if not RING_ON then
+for _,b in ipairs(blocks) do
+local p=b.p
+if p and p.Parent then
+pcall(function()
+p.CanCollide=false
+p.CanTouch=false
+end)
+end
+end
+end
+Notify(RING_ON and "ANEL ON" or "ANEL OFF")
 end)
 BMode.MouseButton1Click:Connect(function()
 local nx="CIMA"
@@ -634,6 +723,30 @@ SELB.CFrame=CFrame.new(cf.Position)*CFrame.Angles(0,math.rad(math.floor((math.de
 end)
 else
 if SELB then ReleaseBlock() end
+end
+if RING_ON then
+local hrp=Root(Char())
+if hrp then
+ringT=ringT+0.033*ringSpd*2
+local n=#rings
+for _,e in ipairs(rings) do
+local p=e.p
+if p and p.Parent then
+local okA=false
+pcall(function() okA=p.Anchored end)
+if not okA then
+local a=ringT+((e.i-1)/math.max(n,1))*math.pi*2
+pcall(function()
+p.CanCollide=false
+p.CanTouch=false
+p.Velocity=Vector3.new(14.46,14.46,14.46)
+p.RotVelocity=Vector3.new(0,0,0)
+p.CFrame=hrp.CFrame*CFrame.new(math.cos(a)*ringR,ringH+math.sin(ringT*1.2+((e.i-1)/math.max(n,1))*math.pi*2)*1.5,math.sin(a)*ringR)
+end)
+end
+end
+end
+end
 end
 if CTRL_ON then
 local hrp=Root(Char())
