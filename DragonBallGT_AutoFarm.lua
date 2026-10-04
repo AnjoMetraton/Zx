@@ -13,18 +13,19 @@ local ATK_SECONDS = 60
 local DEF_SECONDS = 60
 local ENERGY_LOW = 5
 local ENERGY_OK = 95
-local ATK_DELAY = 0.12
-local KI_EVERY = 3
-local DEF_DELAY = 0.3
+local ATK_DELAY = 0.15
+local KI_EVERY = 4
+local DEF_DELAY = 0.4
 local NO_BAR_ATK = 9
-local NO_BAR_REST = 3
+local NO_BAR_REST = 4
+local MELEE_KEYS = {Enum.KeyCode.E,Enum.KeyCode.F}
+local KI_KEYS = {Enum.KeyCode.Q}
+local UP_KEYS = {Enum.KeyCode.C}
+local DEF_KEYS = {Enum.KeyCode.V}
 local ATK_NAMES = {"Punch","Attack","Hit","Melee","Combat","Damage","Slash","Fight","TapDamage"}
 local KI_NAMES = {"KiBlast","Ki","Blast","Kamehameha","Beam","Skill","Shoot","Fire","Special"}
 local UP_NAMES = {"Charge","Recharge","Meditate","Rest","Energy","Regen","KiCharge"}
 local DEF_NAMES = {"Defense","Defence","Block","Guard","TrainDefense","UpgradeDefense","AddDefense","Tank","Train"}
-local KI_KEYS = {Enum.KeyCode.E,Enum.KeyCode.R,Enum.KeyCode.F,Enum.KeyCode.Q}
-local UP_KEYS = {Enum.KeyCode.C}
-local DEF_KEYS = {Enum.KeyCode.G,Enum.KeyCode.T}
 local function New(c,p)
 local o = Instance.new(c)
 for k,v in pairs(p or {}) do o[k] = v end
@@ -66,6 +67,12 @@ task.wait(0.06)
 VIM:SendKeyEvent(false,k,false,game)
 end)
 end
+local function Hold(k,sec)
+pcall(function() VIM:SendKeyEvent(true,k,false,game) end)
+local t0 = tick()
+while _G.DBGT_FarmGen == GEN and tick() - t0 < sec do task.wait(0.2) end
+pcall(function() VIM:SendKeyEvent(false,k,false,game) end)
+end
 local function Tap()
 pcall(function()
 VIM:SendMouseButtonEvent(400,300,0,true,game,1)
@@ -85,6 +92,7 @@ n = string.lower(n)
 if string.find(n,"energy") then return true end
 if string.find(n,"stamina") then return true end
 if string.find(n,"chakra") then return true end
+if string.find(n,"mana") then return true end
 if n == "ki" then return true end
 if string.find(n,"ki bar") then return true end
 if string.find(n,"kibar") then return true end
@@ -132,6 +140,13 @@ if (v:IsA("NumberValue") or v:IsA("IntValue")) and BarName(v.Name) then
 pct = math.clamp(v.Value,0,100) break
 end
 end
+local h = ch:FindFirstChildOfClass("Humanoid")
+if h then
+for _,an in ipairs({"Energy","Ki","Stamina","Mana"}) do
+local av = h:GetAttribute(an)
+if typeof(av) == "number" then pct = math.clamp(av,0,100) break end
+end
+end
 end
 end)
 return pct
@@ -173,11 +188,16 @@ local t0 = tick()
 while _G.DBGT_FarmGen == GEN do
 local p = ReadEnergy()
 if p and p >= ENERGY_OK then break end
-if not p and tick() - t0 > 6 then break end
-if UpRemote then UseRemote(UpRemote) else for _,k in ipairs(UP_KEYS) do Press(k) end end
+if not p and tick() - t0 > 8 then break end
+if UpRemote then
+UseRemote(UpRemote)
 task.wait(0.25)
+else
+Hold(UP_KEYS[1],2)
 end
 end
+end
+local meleeFlip = false
 local function HitPhase(dur)
 local t0 = tick()
 local n = 0
@@ -197,16 +217,19 @@ FillEnergy()
 else
 if not p and tick() - burst > NO_BAR_ATK then
 SetPhase("RECARREGANDO ENERGIA")
-local c0 = tick()
-while _G.DBGT_FarmGen == GEN and tick() - c0 < NO_BAR_REST do
-if UpRemote then UseRemote(UpRemote) else for _,k in ipairs(UP_KEYS) do Press(k) end end
-task.wait(0.25)
-end
+FillEnergy()
+task.wait(NO_BAR_REST)
 burst = tick()
 else
 SetPhase("ATACANDO + KI BLAST")
 FaceNear()
-if AtkRemote then UseRemote(AtkRemote) else Tap() end
+if AtkRemote then
+UseRemote(AtkRemote)
+else
+meleeFlip = not meleeFlip
+if meleeFlip then Press(MELEE_KEYS[1]) else Press(MELEE_KEYS[2]) end
+Tap()
+end
 n = n + 1
 if n % KI_EVERY == 0 then
 if KiRemote then UseRemote(KiRemote) else Press(KI_KEYS[1]) end
