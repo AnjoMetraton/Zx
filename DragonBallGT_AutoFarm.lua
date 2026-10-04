@@ -151,26 +151,6 @@ end
 end)
 return pct
 end
-local function FaceNear()
-pcall(function()
-local ch = Alive()
-if not ch then return end
-local root = ch:FindFirstChild("HumanoidRootPart")
-if not root then return end
-local best = nil
-local bd = 30
-for _,m in ipairs(workspace:GetDescendants()) do
-if m:IsA("Humanoid") and m.Health > 0 and m.Parent ~= ch and not Players:GetPlayerFromCharacter(m.Parent) then
-local r = m.Parent:FindFirstChild("HumanoidRootPart")
-if r then
-local d = (r.Position - root.Position).Magnitude
-if d < bd then bd = d best = r end
-end
-end
-end
-if best then root.CFrame = CFrame.new(root.Position,Vector3.new(best.Position.X,root.Position.Y,best.Position.Z)) end
-end)
-end
 local AtkRemote = FindRemote(ATK_NAMES)
 local KiRemote = FindRemote(KI_NAMES)
 local UpRemote = FindRemote(UP_NAMES)
@@ -222,7 +202,6 @@ task.wait(NO_BAR_REST)
 burst = tick()
 else
 SetPhase("ATACANDO + KI BLAST")
-FaceNear()
 if AtkRemote then
 UseRemote(AtkRemote)
 else
