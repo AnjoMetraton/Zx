@@ -2,6 +2,8 @@ local Players=game:GetService("Players")
 local UIS=game:GetService("UserInputService")
 local TS=game:GetService("TweenService")
 local Http=game:GetService("HttpService")
+local CS=game:GetService("CollectionService")
+local MP=game:GetService("MarketplaceService")
 repeat task.wait() until Players.LocalPlayer
 local LP=Players.LocalPlayer
 local function New(c,p)
@@ -30,10 +32,22 @@ local guiLog={}
 local spyOn=true
 local gameDir="ZX_JOGO"
 local partStat="BLOCOS 0"
+local npcList={}
+local npcRemotes={}
+local npcPlayers={}
+local npcLog={}
+local npcSpy=false
+local npcStat="NPCS 0"
+local npcCount=0
+local npcEnemy=0
+local npcAlly=0
+local npcNeutral=0
+local liveNpcs={}
+local liveCount=0
 local function GameDir()
 local nm="JOGO"
 pcall(function()
-local info=game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
+local info=MP:GetProductInfo(game.PlaceId)
 if info and info.Name then nm=info.Name end
 end)
 nm=nm:gsub("[^%w%s]",""):gsub("%s+","_"):sub(1,40)
@@ -99,6 +113,188 @@ New("TextLabel",{Size=UDim2.new(1,-10,1,0),Position=UDim2.new(0,10,0,0),Backgrou
 task.delay(2.5,function() pcall(function() n:Destroy() end) end)
 end)
 end
+local ENW={"enemy","enemies","hostile","hostiles","mob","mobs","monster","monsters","zombie","zombies","inimigo","inimigos","bad","villain","boss"}
+local ALW={"ally","allies","friendly","friend","friends","hero","summon","summons","pet","pets","aliado","aliados"}
+local NCH={"npc","enemy","hostile","mob","monster","zombie","boss","dummy","minion","creature","wave","inimigo"}
+local function HasW(s,list)
+s=string.lower(s or "")
+for _,w in ipairs(list) do
+if string.find(s,w,1,true) then return true end
+end
+return false
+end
+local function Tags(m)
+local t={}
+pcall(function() t=CS:GetTags(m) end)
+return t
+end
+local function ModelPos(m)
+local p=nil
+pcall(function() p=m:GetPivot().Position end)
+if not p then
+local r=m:FindFirstChild("HumanoidRootPart") or m:FindFirstChild("Head") or m:FindFirstChild("Torso")
+if r then p=r.Position end
+end
+return p
+end
+local function PlayerChars()
+local s={}
+pcall(function()
+for _,p in ipairs(Players:GetPlayers()) do
+if p.Character then s[p.Character]=true end
+end
+end)
+pcall(function()
+local f=workspace:FindFirstChild("Players")
+if f then
+for _,c in ipairs(f:GetChildren()) do s[c]=true end
+end
+end)
+return s
+end
+local function MyTeam()
+local t=nil
+pcall(function() if LP.Team then t=LP.Team.Name end end)
+return t
+end
+local function NPCClass(m,myTeam)
+local tg=Tags(m)
+local kind="NPC"
+local a1=nil
+pcall(function() a1=m:GetAttribute("NPCType") or m:GetAttribute("Role") or m:GetAttribute("EnemyType") or m:GetAttribute("MobType") or m:GetAttribute("UnitType") end)
+if a1 then kind=tostring(a1) end
+local isE=false
+local isA=false
+pcall(function() if m:GetAttribute("IsEnemy")==true or m:GetAttribute("Enemy")==true then isE=true end end)
+pcall(function() if m:GetAttribute("IsAlly")==true or m:GetAttribute("Ally")==true or m:GetAttribute("IsFriendly")==true then isA=true end end)
+local tm=nil
+pcall(function() tm=m:GetAttribute("Team") or m:GetAttribute("Faction") or m:GetAttribute("TeamType") or m:GetAttribute("Side") end)
+if tm then
+if myTeam and string.lower(tostring(tm))==string.lower(myTeam) then isA=true else isE=true end
+end
+for _,t in ipairs(tg) do
+local lt=string.lower(t)
+if lt=="enemy" or lt=="hostile" or lt=="mob" or lt=="boss" or lt=="monster" then isE=true end
+if lt=="ally" or lt=="friendly" or lt=="friend" or lt=="summon" or lt=="pet" then isA=true end
+end
+if not isE and not isA then
+local nm=string.lower(m.Name)
+local fn=string.lower(m.Parent and m.Parent.Name or "")
+if HasW(nm,ENW) or HasW(fn,ENW) then isE=true end
+if HasW(nm,ALW) or HasW(fn,ALW) then isA=true end
+end
+if isE then return "INIMIGO",kind end
+if isA then return "ALIADO",kind end
+return "NEUTRO",kind
+end
+local function ScanNPCs()
+npcList={}
+npcPlayers={}
+npcCount=0
+npcEnemy=0
+npcAlly=0
+npcNeutral=0
+local pset=PlayerChars()
+local myTeam=MyTeam()
+local lpos=nil
+pcall(function() local r=LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") if r then lpos=r.Position end end)
+for _,d in ipairs(workspace:GetDescendants()) do
+if d:IsA("Model") then
+local hum=d:FindFirstChildOfClass("Humanoid")
+if hum and not pset[d] then
+local dup=false
+pcall(function() local pa=d.Parent if pa and pa:IsA("Model") and pa:FindFirstChildOfClass("Humanoid") then dup=true end end)
+if not dup then
+local cls,kind=NPCClass(d,myTeam)
+npcCount=npcCount+1
+if cls=="INIMIGO" then npcEnemy=npcEnemy+1 elseif cls=="ALIADO" then npcAlly=npcAlly+1 else npcNeutral=npcNeutral+1 end
+local e={}
+e.n=d.Name
+pcall(function() e.p=d:GetFullName() end)
+e.k=cls
+e.ty=kind
+e.tg=table.concat(Tags(d),",")
+pcall(function() e.h=hum.Health end)
+pcall(function() e.mh=hum.MaxHealth end)
+pcall(function() e.dn=hum.DisplayName end)
+pcall(function() e.st=tostring(hum:GetState()) end)
+pcall(function() e.rt=tostring(hum.RigType) end)
+e.rp=(d:FindFirstChild("HumanoidRootPart")~=nil) and 1 or 0
+e.an=(d:FindFirstChildOfClass("Animator")~=nil) and 1 or 0
+e.ds=-1
+local wp=ModelPos(d)
+if wp then
+e.x=math.floor(wp.X*10)/10
+e.y=math.floor(wp.Y*10)/10
+e.z=math.floor(wp.Z*10)/10
+if lpos then e.ds=math.floor((wp-lpos).Magnitude*10)/10 end
+end
+if npcCount<=3000 then table.insert(npcList,e) end
+end
+end
+end
+end
+for _,p in ipairs(Players:GetPlayers()) do
+if p~=LP then
+local is=false
+pcall(function() is=p:GetAttribute("IsNPC")==true or p:GetAttribute("IsBot")==true end)
+if is then table.insert(npcPlayers,{n=p.Name,u=p.UserId}) end
+end
+end
+npcStat="NPCS "..npcCount.." INIM "..npcEnemy.." ALI "..npcAlly.." NEU "..npcNeutral
+if #npcPlayers>0 then npcStat=npcStat.." FAK "..#npcPlayers end
+return npcList
+end
+local function WatchNPCs()
+workspace.DescendantAdded:Connect(function(d)
+if not d:IsA("Model") then return end
+task.defer(function()
+if not npcSpy then return end
+local hum=d:FindFirstChildOfClass("Humanoid")
+if hum then
+local pset=PlayerChars()
+if not pset[d] and not liveNpcs[d] then
+liveNpcs[d]=true
+liveCount=liveCount+1
+local cls,kind=NPCClass(d,MyTeam())
+table.insert(npcLog,{e="SPAWN",n=d.Name,c=cls,k=kind,t=os.time()})
+if #npcLog>300 then table.remove(npcLog,1) end
+Notify("NPC "..cls.." "..d.Name)
+end
+end
+end)
+end)
+workspace.DescendantRemoved:Connect(function(d)
+if liveNpcs[d] then
+liveNpcs[d]=nil
+liveCount=math.max(liveCount-1,0)
+table.insert(npcLog,{e="REMOVE",n=d.Name,t=os.time()})
+if #npcLog>300 then table.remove(npcLog,1) end
+end
+end)
+Players.PlayerAdded:Connect(function(p)
+task.defer(function()
+if not npcSpy then return end
+local is=false
+pcall(function() is=p:GetAttribute("IsNPC")==true or p:GetAttribute("IsBot")==true end)
+if is then
+table.insert(npcLog,{e="FAKEPLAYER",n=p.Name,t=os.time()})
+if #npcLog>300 then table.remove(npcLog,1) end
+Notify("NPC FAKE "..p.Name)
+end
+end)
+end)
+task.spawn(function()
+while task.wait(1) do
+if npcSpy then
+NpcStat.Text=npcStat.." VIVOS "..liveCount
+pcall(function()
+if writefile then writefile(WP("NPCLOG.json"),Http:JSONEncode({place=game.PlaceId,live=liveCount,log=npcLog})) end
+end)
+end
+end
+end)
+end
 local function ScanClient()
 GameDir()
 remoteList={}
@@ -106,6 +302,7 @@ localList={}
 moduleList={}
 scriptRefs={}
 nilCount=0
+npcRemotes={}
 pcall(function()
 local idf=identifyexecutor or getexecutorname or whatexecutor
 if idf then execName=idf() end
@@ -184,6 +381,9 @@ pcall(function() jp=d:GetFullName() end)
 end
 if d:IsA("RemoteEvent") or d:IsA("RemoteFunction") or d:IsA("BindableEvent") or d:IsA("BindableFunction") then
 if #remoteList<250 then table.insert(remoteList,d:GetFullName()) end
+if HasW(d.Name,NCH) then
+if #npcRemotes<150 then table.insert(npcRemotes,d:GetFullName()) end
+end
 end
 if d:IsA("LocalScript") then
 if #localList<500 then table.insert(localList,d:GetFullName()) end
@@ -203,7 +403,9 @@ local wsN=0
 local rsN=0
 local guiN=0
 local toolN=0
+local stream="0"
 pcall(function() wsN=#workspace:GetDescendants() end)
+pcall(function() stream=workspace.StreamingEnabled and "1" or "0" end)
 pcall(function()
 local rs=game:GetService("ReplicatedStorage")
 rsN=#rs:GetDescendants()
@@ -231,12 +433,23 @@ pcall(function()
 local f=workspace:FindFirstChild("Players")
 if f and f:FindFirstChild(LP.Name) then charPath="workspace.Players" end
 end)
-detectInfo="TOTAL "..total.." WS "..wsN.." RS "..rsN.." GUI "..guiN.." TOOLS "..toolN.." "..teamSys.." "..charPath.." PLACE "..game.PlaceId
+local npcs=ScanNPCs()
+detectInfo="TOTAL "..total.." WS "..wsN.." RS "..rsN.." GUI "..guiN.." TOOLS "..toolN.." "..teamSys.." "..charPath.." PLACE "..game.PlaceId.." STREAM "..stream
+detectInfo=detectInfo.." NPCS "..npcCount.." INIM "..npcEnemy.." ALI "..npcAlly.." NEU "..npcNeutral
 local out={}
 table.insert(out,"ZX CLIENT DUMP "..game.PlaceId)
 table.insert(out,detectInfo)
 table.insert(out,"REMOTES "..#remoteList)
 for _,r in ipairs(remoteList) do table.insert(out,"R "..r) end
+table.insert(out,"REMOTES NPC "..#npcRemotes)
+for _,r in ipairs(npcRemotes) do table.insert(out,"RN "..r) end
+table.insert(out,"NPCS "..npcCount.." INIM "..npcEnemy.." ALI "..npcAlly.." NEU "..npcNeutral)
+for _,e in ipairs(npcs) do
+if #out>=340 then break end
+table.insert(out,"NPC "..e.k.." "..e.n.." HP "..e.h.."/"..e.mh.." D "..e.ds.." TY "..e.ty.." ST "..e.st.." "..e.p)
+end
+table.insert(out,"FAKE PLAYERS "..#npcPlayers)
+for _,e in ipairs(npcPlayers) do table.insert(out,"NP "..e.n) end
 table.insert(out,"LOCALSCRIPTS "..#localList)
 for _,r in ipairs(localList) do table.insert(out,"L "..r) end
 table.insert(out,"MODULES "..#moduleList)
@@ -245,8 +458,11 @@ table.insert(out,"SERVER NAO REPLICA ServerScriptService ServerStorage")
 table.insert(out,"EXEC "..execName.." NIL "..nilCount.." REFS "..#scriptRefs)
 scanTxt=table.concat(out,"\n")
 pcall(function()
-local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,locals=localList,modules=moduleList,nils=nilCount,exec=execName})
+local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,npcRemotes=npcRemotes,locals=localList,modules=moduleList,nils=nilCount,exec=execName,npcs=npcList,npcPlayers=npcPlayers})
 if writefile then writefile(WP("DUMP.json"),js) end
+end)
+pcall(function()
+if writefile then writefile(WP("NPCS.json"),Http:JSONEncode({place=game.PlaceId,count=npcCount,enemy=npcEnemy,ally=npcAlly,neutral=npcNeutral,npcs=npcList,npcPlayers=npcPlayers})) end
 end)
 return scanTxt
 end
@@ -409,8 +625,11 @@ local function SendDump()
 sendStat="SALVO LOCAL"
 SendStat.Text=sendStat
 pcall(function()
-local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,locals=localList,modules=moduleList,nils=nilCount,exec=execName})
+local js=Http:JSONEncode({place=game.PlaceId,info=detectInfo,remotes=remoteList,npcRemotes=npcRemotes,locals=localList,modules=moduleList,nils=nilCount,exec=execName,npcs=npcList,npcPlayers=npcPlayers})
 if writefile then writefile(WP("DUMP.json"),js) end
+end)
+pcall(function()
+if writefile then writefile(WP("NPCS.json"),Http:JSONEncode({place=game.PlaceId,count=npcCount,enemy=npcEnemy,ally=npcAlly,neutral=npcNeutral,npcs=npcList,npcPlayers=npcPlayers})) end
 end)
 Notify(sendStat)
 return true
@@ -453,6 +672,9 @@ New("UICorner",{CornerRadius=UDim.new(0,10),Parent=SrcStat})
 Section("BLOCOS ANC E SOL")
 PartStat=New("TextLabel",{Size=UDim2.new(0.92,0,0,26),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="BLOCOS 0",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,100,255),TextSize=11,Parent=Scroll})
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=PartStat})
+Section("NPCS INIMIGOS E ALIADOS")
+NpcStat=New("TextLabel",{Size=UDim2.new(0.92,0,0,26),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="NPCS 0",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(160,100,255),TextSize=11,Parent=Scroll})
+New("UICorner",{CornerRadius=UDim.new(0,10),Parent=NpcStat})
 Section("ACOES")
 BAll=BigBtn("SCANEAR E SALVAR TUDO")
 BScan=BigBtn("ESCANEAR CLIENT")
@@ -460,6 +682,8 @@ BSend=BigBtn("SALVAR LOCAL")
 BParts=BigBtn("SALVAR BLOCOS")
 BCopySrc=BigBtn("COPIAR SCRIPTS LOCAL")
 BSaveSrc=BigBtn("SALVAR FONTES LOCAL")
+BNpc=BigBtn("ESCANEAR NPCS")
+BNpcSpy=BigBtn("NPC SPY OFF")
 BSpy=BigBtn("REMOTE SPY OFF")
 BAnim=BigBtn("ANIM SPY OFF")
 BGui=BigBtn("GUI SCAN")
@@ -506,6 +730,9 @@ end)
 pcall(function()
 if writefile then writefile(WP("ANIMLOG.json"),Http:JSONEncode(animLog)) end
 end)
+pcall(function()
+if writefile then writefile(WP("NPCLOG.json"),Http:JSONEncode({place=game.PlaceId,live=liveCount,log=npcLog})) end
+end)
 InfoBox.Text=detectInfo.." TUDO SALVO"
 Notify("TUDO SALVO LOCAL")
 end)
@@ -529,6 +756,34 @@ BSpy.MouseButton1Click:Connect(function()
 spyOn=not spyOn
 SetTxt2(BSpy,spyOn and "REMOTE SPY ON" or "REMOTE SPY OFF")
 Notify(spyOn and "SPY LIGADO" or "SPY DESLIGADO")
+end)
+BNpc.MouseButton1Click:Connect(function()
+task.spawn(function()
+InfoBox.Text="ESCANEANDO NPCS"
+local list=ScanNPCs()
+local out={}
+table.insert(out,npcStat)
+for _,e in ipairs(list) do
+table.insert(out,e.k.." "..e.n.." HP "..e.h.."/"..e.mh.." D "..e.ds.." TY "..e.ty.." ST "..e.st)
+if #out>=140 then break end
+end
+if #npcPlayers>0 then
+table.insert(out,"FAKE PLAYERS "..#npcPlayers)
+for _,e in ipairs(npcPlayers) do table.insert(out,"NP "..e.n) end
+end
+DumpBox.Text=table.concat(out,"\n")
+NpcStat.Text=npcStat
+InfoBox.Text=npcStat
+pcall(function()
+if writefile then writefile(WP("NPCS.json"),Http:JSONEncode({place=game.PlaceId,count=npcCount,enemy=npcEnemy,ally=npcAlly,neutral=npcNeutral,npcs=list,npcPlayers=npcPlayers})) end
+end)
+Notify("NPCS "..npcCount)
+end)
+end)
+BNpcSpy.MouseButton1Click:Connect(function()
+npcSpy=not npcSpy
+SetTxt2(BNpcSpy,npcSpy and "NPC SPY ON" or "NPC SPY OFF")
+Notify(npcSpy and "NPC SPY LIGADO" or "NPC SPY DESLIGADO")
 end)
 BAnim.MouseButton1Click:Connect(function()
 task.spawn(function()
@@ -607,6 +862,9 @@ end
 end
 end)
 end)
+task.spawn(function()
+WatchNPCs()
+end)
 BGui.MouseButton1Click:Connect(function()
 task.spawn(function()
 guiLog={}
@@ -635,7 +893,8 @@ task.spawn(function()
 local ok=pcall(function()
 GameDir()
 local P={RepoURL="https://raw.githubusercontent.com/luau/UniversalSynSaveInstance/main/",SSI="saveinstance"}
-local f=loadstring(game:HttpGet(P.RepoURL..P.SSI..".luau",true),P.SSI)()
+local ld=load or loadstring
+local f=ld(game:HttpGet(P.RepoURL..P.SSI..".luau",true),P.SSI)()
 f({Decompile=true,SavePlayers=false,SafeMode=true,DecompileTimeout=15,SaveBytecodeIfDecompilerFails=true,TreatUnionsAsParts=true,FilePath=gameDir.."/MAPA"})
 end)
 if not ok then SaveParts() end
@@ -683,6 +942,7 @@ Tween(Panel,{Position=UDim2.new(0.5,-170,0.5,-260)},0.5)
 local txt=ScanClient()
 InfoBox.Text=detectInfo
 DumpBox.Text=txt:sub(1,6000)
+NpcStat.Text=npcStat
 Notify("ANALYZER PRONTO")
 task.spawn(function() SendDump() end)
 end)
