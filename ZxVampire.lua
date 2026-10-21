@@ -7,7 +7,9 @@ repeat task.wait() until Players.LocalPlayer
 local LP=Players.LocalPlayer
 local GEN=(_G.ZxVampGen or 0)+1
 _G.ZxVampGen=GEN
+local BUILD="2026.10.21-C"
 local FUNCS="Fun\195\167\195\181es"
+local zxMain=function()
 pcall(function()
 local old=LP.PlayerGui:FindFirstChild("ZxVampire")
 if old then old:Destroy() end
@@ -16,8 +18,9 @@ pcall(function() RS:UnbindFromRenderStep("ZxVamp") end)
 local lastTarget, Nlist, ESPCache, SG, BG, LCard, LS, LTitle, LSub, LBTrack, LBFill, LPct, LStat, Panel, PStroke, TopBar, MinBtn, CloseBtn, TabBar, TabBtns, Pages, P1, P2, P3, BFarm, BFist, BWalk, BRescan, BPick, BStop, NpcInfo, NpcRows, NpcRowLay, LvlBtns, LvlLay, BTeach, LvlInfo, BReset, BReload, Nh, Pop, Scroll, Lay, ESPFolder, ESPCache, Marker, Nlist, NpcRows, LvlBtns
 
 local function New(c,p)
-local o=Instance.new(c)
-for k,v in pairs(p or {}) do o[k]=v end
+local ok,o=pcall(Instance.new,c)
+if not ok or not o then return nil end
+for k,v in pairs(p or {}) do pcall(function() o[k]=v end) end
 return o
 end
 local function Tween(o,p,d)
@@ -213,6 +216,14 @@ end
 if lmap[string.format("%d",math.floor(hp+0.5))] then return lmap[string.format("%d",math.floor(hp+0.5))] end
 return math.floor(math.pow(hp/1288,1/0.3088)+0.5)
 end
+local function SnapLevel(v)
+if not v or v<25 then return v end
+for _,step in ipairs({1000,500,250,100,50}) do
+local r=math.floor(v/step+0.5)*step
+if r>0 and math.abs(v-r)<=math.max(3,v*0.008) then return r end
+end
+return v
+end
 local function ValueLevel(m)
 local best=nil
 pcall(function()
@@ -253,7 +264,7 @@ pcall(function() hp=hum and hum.MaxHealth or 0 end)
 if hp>0 then
 local key=string.format("%d",math.floor(hp+0.5))
 if lmap[key] then lvlCache[m]={l=lmap[key],s="MAPA",t=now} return lmap[key],"MAPA" end
-local est=EstLevel(hp)
+local est=SnapLevel(EstLevel(hp))
 lvlCache[m]={l=est,s="EST",t=now}
 return est,"EST"
 end
@@ -491,7 +502,7 @@ LS=New("UIStroke",{Color=Color3.fromRGB(120,0,255),Thickness=1.5,Parent=LCard})
 New("TextLabel",{Size=UDim2.new(1,0,0,36),Position=UDim2.new(0,0,0,12),BackgroundTransparency=1,Text="ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=26,ZIndex=13,Parent=LCard})
 LTitle=New("TextLabel",{Size=UDim2.new(1,0,0,28),Position=UDim2.new(0,0,0,50),BackgroundTransparency=1,Text="ZX VAMPIRE LIFE",Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=19,ZIndex=13,Parent=LCard})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(180,80,255)),ColorSequenceKeypoint.new(0.5,Color3.fromRGB(1,1,1)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,200,255))}),Parent=LTitle})
-LSub=New("TextLabel",{Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,80),BackgroundTransparency=1,Text="AUTO FARM PUNHO  V2026",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(100,60,180),TextSize=10,ZIndex=13,Parent=LCard})
+LSub=New("TextLabel",{Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,80),BackgroundTransparency=1,Text="AUTO FARM PUNHO  V"..BUILD,Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(100,60,180),TextSize=10,ZIndex=13,Parent=LCard})
 LBTrack=New("Frame",{Size=UDim2.new(0.82,0,0,4),Position=UDim2.new(0.09,0,0,112),BackgroundColor3=Color3.fromRGB(8,5,15),BorderSizePixel=0,ZIndex=13,Parent=LCard})
 New("UICorner",{CornerRadius=UDim.new(0,2),Parent=LBTrack})
 LBFill=New("Frame",{Size=UDim2.new(0,0,1,0),BackgroundColor3=Color3.fromRGB(120,0,255),BorderSizePixel=0,ZIndex=14,Parent=LBTrack})
@@ -499,6 +510,13 @@ New("UICorner",{CornerRadius=UDim.new(0,2),Parent=LBFill})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(100,0,200)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,210,255))}),Parent=LBFill})
 LPct=New("TextLabel",{Size=UDim2.new(1,0,0,18),Position=UDim2.new(0,0,0,124),BackgroundTransparency=1,Text="0%",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=12,ZIndex=13,Parent=LCard})
 LStat=New("TextLabel",{Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,148),BackgroundTransparency=1,Text="CARREGANDO",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(70,45,110),TextSize=10,ZIndex=13,Parent=LCard})
+_G.ZXV={SG=SG,BG=BG,LCard=LCard,LPct=LPct,LStat=LStat,LBFill=LBFill}
+task.spawn(function()
+task.wait(20)
+pcall(function()
+if BG and BG.Parent and (not Panel or not Panel.Visible) then BG:Destroy() end
+end)
+end)
 PANELH=540
 pcall(function()
 local cam=workspace.CurrentCamera
@@ -507,6 +525,7 @@ PANELH=math.clamp(cam.ViewportSize.Y-150,360,560)
 end
 end)
 Panel=New("Frame",{Size=UDim2.new(0,340,0,PANELH),Position=UDim2.new(0.5,-170,0.5,1200),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ClipsDescendants=true,Visible=false,Parent=SG})
+if _G.ZXV then _G.ZXV.Panel=Panel end
 New("UICorner",{CornerRadius=UDim.new(0,16),Parent=Panel})
 PStroke=New("UIStroke",{Color=Color3.fromRGB(100,0,220),Thickness=1.8,Parent=Panel})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(8,4,18)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,0,0))}),Rotation=135,Parent=Panel})
@@ -532,7 +551,7 @@ New("UIStroke",{Color=i==1 and Color3.fromRGB(100,0,220) or Color3.fromRGB(30,20
 TabBtns[i]=b
 end
 for i=1,3 do
-local s=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-96),Position=UDim2.new(0,0,0,96),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=2,ScrollBarImageColor3=Color3.fromRGB(120,0,240),ScrollBarImageTransparency=0.3,CanvasSize=UDim2.new(0,0,0,0),ScrollingDirection=Enum.ScrollingDirection.Y,ElasticBehavior=Enum.ElasticBehavior.WhenScrollable,ScrollBarDragDistance=40,Visible=i==1,Parent=Panel})
+local s=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-96),Position=UDim2.new(0,0,0,96),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=2,ScrollBarImageColor3=Color3.fromRGB(120,0,240),ScrollBarImageTransparency=0.3,CanvasSize=UDim2.new(0,0,0,0),ScrollingDirection=Enum.ScrollingDirection.Y,ElasticBehavior=Enum.ElasticBehavior.WhenScrollable,Visible=i==1,Parent=Panel})
 local lay=New("UIListLayout",{Padding=UDim.new(0,6),SortOrder=Enum.SortOrder.LayoutOrder,HorizontalAlignment=Enum.HorizontalAlignment.Center,Parent=s})
 New("UIPadding",{PaddingTop=UDim.new(0,6),PaddingBottom=UDim.new(0,12),PaddingLeft=UDim.new(0,0),PaddingRight=UDim.new(0,0),Parent=s})
 lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -966,7 +985,7 @@ end)
 UIS.InputEnded:Connect(function(i)
 if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then dragP=false end
 end)
-local ESPFolder=New("Folder",{Name="ZxVampireESP",Parent=SG})
+local ESPFolder=New("Folder",{Name="ZxVampireESP",Parent=LP:WaitForChild("PlayerGui")})
 ClearESP=function()
 ESPCache=ESPCache or {}
 for _,d in ipairs(ESPFolder:GetChildren()) do
@@ -979,9 +998,9 @@ ESPCache=ESPCache or {}
 if ESPCache[e.m] then return end
 local holder=New("Folder",{Parent=ESPFolder})
 local bb=New("BillboardGui",{Size=UDim2.new(0,150,0,40),StudsOffset=Vector3.new(0,3,0),AlwaysOnTop=true,MaxDistance=900,Parent=holder})
-New("TextLabel",{Size=UDim2.new(1,0,0,18),BackgroundTransparency=1,Text=e.name.." LV"..e.lvl,Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(255,190,120),TextSize=13,TextStrokeTransparency=0.4,Parent=bb})
-New("TextLabel",{Size=UDim2.new(1,0,0,14),Position=UDim2.new(0,0,0,18),BackgroundTransparency=1,Text="HP"..math.floor(e.hp).."/"..math.floor(e.mh).." D"..e.dist,Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(160,230,255),TextSize=11,TextStrokeTransparency=0.4,Parent=bb})
-ESPCache[e.m]={holder=holder,bb=bb,t1=bb:FindFirstChildOfClass("TextLabel")}
+local t1=New("TextLabel",{Size=UDim2.new(1,0,0,18),BackgroundTransparency=1,Text=e.name.." LV"..e.lvl,Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(255,190,120),TextSize=13,TextStrokeTransparency=0.4,Parent=bb})
+local t2=New("TextLabel",{Size=UDim2.new(1,0,0,14),Position=UDim2.new(0,0,0,18),BackgroundTransparency=1,Text="HP"..math.floor(e.hp).."/"..math.floor(e.mh).." D"..e.dist,Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(160,230,255),TextSize=11,TextStrokeTransparency=0.4,Parent=bb})
+ESPCache[e.m]={holder=holder,bb=bb,t1=t1,t2=t2}
 if e.m:FindFirstChild("HumanoidRootPart") then
 bb.Adornee=e.m:FindFirstChild("HumanoidRootPart")
 end
@@ -997,8 +1016,7 @@ local hp=0
 pcall(function() hp=e.m:FindFirstChildOfClass("Humanoid").Health end)
 e.hp=hp
 if c.t1 then c.t1.Text=e.name.." LV"..e.lvl end
-local t2=c.bb:FindFirstChildOfClass("TextLabel",false)
-if t2 then t2.Text="HP"..math.floor(hp).."/"..math.floor(e.mh).." D"..e.dist end
+if c.t2 then c.t2.Text="HP"..math.floor(hp).."/"..math.floor(e.mh).." D"..e.dist end
 end
 end
 end
@@ -1012,11 +1030,11 @@ end
 local root=curTarget.m:FindFirstChild("HumanoidRootPart") or curTarget.m:FindFirstChild("Head")
 if not root then return end
 if not Marker then
-Marker=New("BillboardGui",{Size=UDim2.new(0,60,0,60),StudsOffset=Vector3.new(0,4,0),AlwaysOnTop=true,Parent=SG})
+Marker=New("BillboardGui",{Size=UDim2.new(0,60,0,60),StudsOffset=Vector3.new(0,4,0),AlwaysOnTop=true,Parent=LP:WaitForChild("PlayerGui")})
 New("TextLabel",{Size=UDim2.new(1,0,1,0),BackgroundTransparency=1,Text="▼",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(255,60,120),TextSize=30,TextStrokeTransparency=0.3,Parent=Marker})
 end
 Marker.Adornee=root
-Marker.Visible=true
+Marker.Enabled=true
 end
 task.spawn(function()
 pcall(function()
@@ -1198,4 +1216,35 @@ end)
 task.spawn(function()
 StartCombatSpy()
 end)
+pcall(function() print("[ZX VAMPIRE] build "..BUILD.." pronto") end)
 _G.ZXV={SG=SG,BG=BG,LCard=LCard,LPct=LPct,LStat=LStat,LBFill=LBFill,Panel=Panel,Pages=Pages,TabBtns=TabBtns,NpcRows=NpcRows,LvlBtns=LvlBtns,NpcInfo=NpcInfo,FarmStat=FarmStat,BFarm=BFarm,BFist=BFist,BWalk=BWalk,Pop=Pop,Nh=Nh,Scroll=Scroll}
+
+end
+local zxok,zxerr=xpcall(zxMain,function(e) return tostring(e) end)
+if not zxok then
+pcall(function() warn("[ZX VAMPIRE] ERRO: "..tostring(zxerr)) end)
+pcall(function()
+local g=_G.ZXV
+if g and g.SG then
+local e=Instance.new("TextLabel")
+e.Size=UDim2.new(1,-40,0,220)
+e.Position=UDim2.new(0,20,0.5,-110)
+e.BackgroundTransparency=1
+e.Text="ERRO NO SCRIPT:\n"..tostring(zxerr)
+e.Font=Enum.Font.Code
+e.TextColor3=Color3.fromRGB(255,80,80)
+e.TextSize=13
+e.TextWrapped=true
+e.TextXAlignment=Enum.TextXAlignment.Left
+e.ZIndex=50
+e.Parent=g.SG
+end
+end)
+task.spawn(function()
+task.wait(25)
+pcall(function()
+local g=_G.ZXV
+if g and g.BG then g.BG:Destroy() end
+end)
+end)
+end
