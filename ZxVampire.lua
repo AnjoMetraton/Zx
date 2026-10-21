@@ -68,6 +68,8 @@ local targetInfo=nil
 local npcs={}
 local levelsFound={}
 local lvlSig=""
+local ClearESP
+local RefreshNpcList
 local scanT=0
 local atkT=0
 local equipT=0
@@ -100,6 +102,34 @@ writefile(CFGFILE,Http:JSONEncode({lmap=lmap,anchors=anchors,cfg=cfg,place=game.
 end)
 end
 LoadCfg()
+
+local Nlist={}
+local function Notify(txt)
+if #Nlist>=4 then
+local old=Nlist[1]
+table.remove(Nlist,1)
+pcall(function() old:Destroy() end)
+end
+local n=New("Frame",{Size=UDim2.new(1,0,0,44),Position=UDim2.new(0,0,1,0),BackgroundColor3=Color3.fromRGB(4,2,10),BorderSizePixel=0,Parent=Nh})
+New("UICorner",{CornerRadius=UDim.new(0,10),Parent=n})
+New("UIStroke",{Color=Color3.fromRGB(110,0,230),Thickness=1.3,Parent=n})
+local ac=New("Frame",{Size=UDim2.new(0,3,0.6,0),Position=UDim2.new(0,0,0.2,0),BackgroundColor3=Color3.fromRGB(140,0,255),BorderSizePixel=0,Parent=n})
+New("UICorner",{CornerRadius=UDim.new(0,10),Parent=ac})
+New("TextLabel",{Size=UDim2.new(0,28,1,0),Position=UDim2.new(0,8,0,0),BackgroundTransparency=1,Text="ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=11,Parent=n})
+New("TextLabel",{Size=UDim2.new(1,-42,1,0),Position=UDim2.new(0,38,0,0),BackgroundTransparency=1,Text=txt,Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=12,TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=n})
+Tween(n,{Position=UDim2.new(0,0,1 - (#Nlist+1)*0.17,0)},0.35)
+table.insert(Nlist,n)
+task.delay(2.6,function()
+pcall(function()
+Tween(n,{Position=UDim2.new(0,0,1.6,0)},0.3)
+task.wait(0.3)
+n:Destroy()
+end)
+for i,v in ipairs(Nlist) do
+if v==n then table.remove(Nlist,i) break end
+end
+end)
+end
 local function NumOf(v)
 if type(v)=="number" then return v end
 if type(v)=="string" then
@@ -228,7 +258,7 @@ end
 return 0,nil
 end
 local BADWORDS={"corpse","quest","shop","buyer","keeper","giver","campfire","dummy","aura","marquee","star","totem","sign"}
-local GOODWORDS={"hunter","guard","human","mobs","mob","enemy","npc","zombie"}
+local GOODWORDS={"hunter","guard","human","mobs","mob","enemy","npc","zombie","bandit","vampire","werewolf","spawn","monster","raid","boss","guarda","cacador"}
 local function IsPlayerModel(m)
 for _,p in ipairs(Players:GetPlayers()) do
 if p.Character==m then return true end
@@ -239,7 +269,7 @@ local function KindOf(m)
 local p=""
 pcall(function() p=m:GetFullName() end)
 local low=string.lower(p)
-if string.find(low,"hunters") then return "HUNTER" end
+if string.find(low,"hunters") or string.find(low,"hunter") then return "HUNTER" end
 if string.find(low,"guards") or string.find(low,"guard") then return "GUARD" end
 if string.find(low,"humans") then return "HUMAN" end
 if string.find(low,"npcs") then return "NPC" end
@@ -262,7 +292,7 @@ if string.find(nm,w,1,true) then return true end
 end
 return false
 end
-local function ScanNPCs()
+local function ScanNPCs(full)
 npcs={}
 levelsFound={}
 local seen={}
@@ -275,7 +305,7 @@ seen[d]=true
 if IsFarmable(d) then table.insert(list,d) end
 end
 end
-if #list<10 then
+if full then
 for _,d in ipairs(workspace:GetDescendants()) do
 if d:IsA("Model") and not seen[d] then
 seen[d]=true
@@ -311,14 +341,26 @@ end
 end
 return npcs
 end
+local function AliveNow(m)
+if not m or not m.Parent then return false end
+local h=m:FindFirstChildOfClass("Humanoid")
+if not h then return false end
+local hp=0
+pcall(function() hp=h.Health end)
+return hp>0
+end
 local function PickTarget()
 local list={}
 for _,e in ipairs(npcs) do
-if not e.dead then
-local ok=true
-if wantLevel>0 and e.lvl~=wantLevel then ok=false end
-if ok then table.insert(list,e) end
+if not e.dead and AliveNow(e.m) then
+if wantLevel==0 or e.lvl==wantLevel then table.insert(list,e) end
 end
+end
+if #list==0 and wantLevel>0 then
+for _,e in ipairs(npcs) do
+if not e.dead and AliveNow(e.m) then table.insert(list,e) end
+end
+if #list>0 then Notify("SEM NIVEL "..wantLevel.." - FARMANDO QUALQUER") end
 end
 if #list==0 then return nil end
 table.sort(list,function(a,b) return a.dist<b.dist end)
@@ -455,34 +497,14 @@ New("UICorner",{CornerRadius=UDim.new(0,2),Parent=LBFill})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(100,0,200)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,210,255))}),Parent=LBFill})
 LPct=New("TextLabel",{Size=UDim2.new(1,0,0,18),Position=UDim2.new(0,0,0,124),BackgroundTransparency=1,Text="0%",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=12,ZIndex=13,Parent=LCard})
 LStat=New("TextLabel",{Size=UDim2.new(1,0,0,16),Position=UDim2.new(0,0,0,148),BackgroundTransparency=1,Text="CARREGANDO",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(70,45,110),TextSize=10,ZIndex=13,Parent=LCard})
-local Nlist={}
-local function Notify(txt)
-if #Nlist>=4 then
-local old=Nlist[1]
-table.remove(Nlist,1)
-pcall(function() old:Destroy() end)
-end
-local n=New("Frame",{Size=UDim2.new(1,0,0,44),Position=UDim2.new(0,0,1,0),BackgroundColor3=Color3.fromRGB(4,2,10),BorderSizePixel=0,Parent=Nh})
-New("UICorner",{CornerRadius=UDim.new(0,10),Parent=n})
-New("UIStroke",{Color=Color3.fromRGB(110,0,230),Thickness=1.3,Parent=n})
-local ac=New("Frame",{Size=UDim2.new(0,3,0.6,0),Position=UDim2.new(0,0,0.2,0),BackgroundColor3=Color3.fromRGB(140,0,255),BorderSizePixel=0,Parent=n})
-New("UICorner",{CornerRadius=UDim.new(0,10),Parent=ac})
-New("TextLabel",{Size=UDim2.new(0,28,1,0),Position=UDim2.new(0,8,0,0),BackgroundTransparency=1,Text="ZX",Font=Enum.Font.GothamBold,TextColor3=Color3.fromRGB(140,0,255),TextSize=11,Parent=n})
-New("TextLabel",{Size=UDim2.new(1,-42,1,0),Position=UDim2.new(0,38,0,0),BackgroundTransparency=1,Text=txt,Font=Enum.Font.GothamBold,TextColor3=Color3.new(1,1,1),TextSize=12,TextXAlignment=Enum.TextXAlignment.Left,TextTruncate=Enum.TextTruncate.AtEnd,Parent=n})
-Tween(n,{Position=UDim2.new(0,0,1 - (#Nlist+1)*0.17,0)},0.35)
-table.insert(Nlist,n)
-task.delay(2.6,function()
+PANELH=540
 pcall(function()
-Tween(n,{Position=UDim2.new(0,0,1.6,0)},0.3)
-task.wait(0.3)
-n:Destroy()
-end)
-for i,v in ipairs(Nlist) do
-if v==n then table.remove(Nlist,i) break end
+local cam=workspace.CurrentCamera
+if cam then
+PANELH=math.clamp(cam.ViewportSize.Y-150,360,560)
 end
 end)
-end
-Panel=New("Frame",{Size=UDim2.new(0,340,0,540),Position=UDim2.new(0.5,-170,0.5,1200),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ClipsDescendants=true,Visible=false,Parent=SG})
+Panel=New("Frame",{Size=UDim2.new(0,340,0,PANELH),Position=UDim2.new(0.5,-170,0.5,1200),BackgroundColor3=Color3.new(0,0,0),BorderSizePixel=0,ClipsDescendants=true,Visible=false,Parent=SG})
 New("UICorner",{CornerRadius=UDim.new(0,16),Parent=Panel})
 PStroke=New("UIStroke",{Color=Color3.fromRGB(100,0,220),Thickness=1.8,Parent=Panel})
 New("UIGradient",{Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(8,4,18)),ColorSequenceKeypoint.new(1,Color3.fromRGB(0,0,0))}),Rotation=135,Parent=Panel})
@@ -508,7 +530,7 @@ New("UIStroke",{Color=i==1 and Color3.fromRGB(100,0,220) or Color3.fromRGB(30,20
 TabBtns[i]=b
 end
 for i=1,3 do
-local s=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-96),Position=UDim2.new(0,0,0,96),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=2,ScrollBarImageColor3=Color3.fromRGB(120,0,240),ScrollBarImageTransparency=0.3,CanvasSize=UDim2.new(0,0,0,0),ScrollingDirection=Enum.ScrollingDirection.Y,ElasticBehavior=Enum.ElasticBehavior.Never,Visible=i==1,Parent=Panel})
+local s=New("ScrollingFrame",{Size=UDim2.new(1,0,1,-96),Position=UDim2.new(0,0,0,96),BackgroundTransparency=1,BorderSizePixel=0,ScrollBarThickness=2,ScrollBarImageColor3=Color3.fromRGB(120,0,240),ScrollBarImageTransparency=0.3,CanvasSize=UDim2.new(0,0,0,0),ScrollingDirection=Enum.ScrollingDirection.Y,ElasticBehavior=Enum.ElasticBehavior.WhenScrollable,ScrollBarDragDistance=40,Visible=i==1,Parent=Panel})
 local lay=New("UIListLayout",{Padding=UDim.new(0,6),SortOrder=Enum.SortOrder.LayoutOrder,HorizontalAlignment=Enum.HorizontalAlignment.Center,Parent=s})
 New("UIPadding",{PaddingTop=UDim.new(0,6),PaddingBottom=UDim.new(0,12),PaddingLeft=UDim.new(0,0),PaddingRight=UDim.new(0,0),Parent=s})
 lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
@@ -593,6 +615,7 @@ local thumb=New("TextButton",{Size=UDim2.new(0,18,0,18),Position=UDim2.new((defv
 New("UICorner",{CornerRadius=UDim.new(0.5,0),Parent=thumb})
 local drag=false
 local function upd(inp)
+if not inp or not inp.Position then return end
 local x=math.clamp((inp.Position.X-track.AbsolutePosition.X)/math.max(track.AbsoluteSize.X,1),0,1)
 fill.Size=UDim2.new(x,0,1,0)
 thumb.Position=UDim2.new(x,-9,0.5,-9)
@@ -602,9 +625,11 @@ lab.Text=title.." "..v
 cb(v)
 end
 thumb.InputBegan:Connect(function(i)
+if not i then return end
 if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then drag=true end
 end)
 track.InputBegan:Connect(function(i)
+if not i then return end
 if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then drag=true upd(i) end
 end)
 UIS.InputEnded:Connect(function(i)
@@ -650,7 +675,7 @@ local LevelBox,LvlInput=MakeInput(P1,"NIVEL","0 = TODOS",function(txt)
 local n=tonumber(txt)
 wantLevel=n or 0
 Notify("NIVEL "..(wantLevel>0 and wantLevel or "TODOS"))
-RefreshNPCList()
+RefreshNpcList()
 end)
 Section(P1,"ALVO")
 BRescan=MakeBtn(P1,"REESCANEAR NPCS")
@@ -661,12 +686,18 @@ NpcInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,30),BackgroundColor3=Color3.fro
 New("UICorner",{CornerRadius=UDim.new(0,10),Parent=NpcInfo})
 NpcRows=New("Frame",{Size=UDim2.new(1,0,0,10),BackgroundTransparency=1,Parent=P2})
 NpcRowLay=New("UIListLayout",{Padding=UDim.new(0,4),SortOrder=Enum.SortOrder.LayoutOrder,HorizontalAlignment=Enum.HorizontalAlignment.Center,Parent=NpcRows})
+NpcRowLay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+NpcRows.Size=UDim2.new(1,0,0,NpcRowLay.AbsoluteContentSize.Y)
+end)
 Section(P2,"ESP DE NPCS")
 TEsp,TEspD=MakeRow(P2,"MOSTRAR ESP NPC",true)
 TMark,TMarkD=MakeRow(P2,"MARCAR ALVO",true)
 Section(P2,"NIVEL RAPIDO")
 LvlBtns=New("Frame",{Size=UDim2.new(1,0,0,10),BackgroundTransparency=1,Parent=P2})
 LvlLay=New("UIListLayout",{Padding=UDim.new(0,4),SortOrder=Enum.SortOrder.LayoutOrder,HorizontalAlignment=Enum.HorizontalAlignment.Center,Parent=LvlBtns})
+LvlLay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+LvlBtns.Size=UDim2.new(1,0,0,LvlLay.AbsoluteContentSize.Y)
+end)
 Section(P3,"AJUSTES DE NIVEL")
 BTeach=MakeBtn(P3,"APRENDER NIVEL DO ALVO")
 LvlInfo=New("TextLabel",{Size=UDim2.new(0.92,0,0,50),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="MAPA DE NIVEL VAZIO",Font=Enum.Font.Gotham,TextColor3=Color3.fromRGB(140,120,190),TextSize=11,TextWrapped=true,Parent=P3})
@@ -684,7 +715,7 @@ local an=""
 for _,a in ipairs(anchors) do an=an..a.hp.."="..a.lvl.."  " end
 LvlInfo.Text="HP=NIVEL: "..(#ks>0 and table.concat(ks,"  ") or "-").."\nCURVA: "..(#anchors>0 and an or "PADRAO (2 PONTO NECESSARIO)")
 end
-local function RefreshNpcList()
+RefreshNpcList=function()
 for _,c in ipairs(NpcRows:GetChildren()) do
 if c:IsA("TextButton") then pcall(function() c:Destroy() end) end
 end
@@ -693,7 +724,7 @@ for _,e in ipairs(npcs) do table.insert(list,e) end
 table.sort(list,function(a,b) return a.dist<b.dist end)
 local n=0
 for _,e in ipairs(list) do
-if n>=24 then break end
+if n>=30 then break end
 n=n+1
 local col=e.dead and Color3.fromRGB(120,60,60) or (e.kind=="HUNTER" and Color3.fromRGB(200,120,90) or Color3.fromRGB(120,170,220))
 local b=New("TextButton",{Size=UDim2.new(0.92,0,0,34),BackgroundColor3=Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="",AutoButtonColor=false,LayoutOrder=n,Parent=NpcRows})
@@ -709,6 +740,7 @@ Notify("ALVO "..e.name.." LV"..e.lvl)
 SetBtn(BFarm,farmOn,farmOn and "AUTO FARM ON" or "AUTO FARM OFF")
 end)
 end
+NpcRows.Size=UDim2.new(1,0,0,math.max(n*38,10))
 NpcInfo.Text="NPCS "..#npcs.."  ALVO "..(curTarget and curTarget.name or "NENHUM")
 end
 local function RefreshLvlButtons()
@@ -732,8 +764,10 @@ Notify("NIVEL TODOS")
 RefreshLvlButtons()
 RefreshNpcList()
 end)
+local btnN=1
 for i,k in ipairs(ks) do
 if i>12 then break end
+btnN=btnN+1
 local b=New("TextButton",{Size=UDim2.new(0.92,0,0,32),BackgroundColor3=wantLevel==k and Color3.fromRGB(22,0,44) or Color3.fromRGB(5,3,12),BorderSizePixel=0,Text="",AutoButtonColor=false,LayoutOrder=i,Parent=LvlBtns})
 New("UICorner",{CornerRadius=UDim.new(0,8),Parent=b})
 New("UIStroke",{Color=wantLevel==k and Color3.fromRGB(100,0,220) or Color3.fromRGB(30,20,50),Thickness=1,Parent=b})
@@ -750,6 +784,7 @@ RefreshLvlButtons()
 RefreshNpcList()
 end)
 end
+LvlBtns.Size=UDim2.new(1,0,0,math.max(btnN*36,10))
 end
 local function SetFarm(st)
 farmOn=st
@@ -860,7 +895,7 @@ local best=nil
 local root=GetRoot()
 if not root then return end
 for _,e in ipairs(npcs) do
-if not e.dead and e.pos then
+if not e.dead and e.pos and AliveNow(e.m) then
 local d=(e.pos-root.Position).Magnitude
 if not best or d<best.d then best={e=e,d=d} end
 end
@@ -912,8 +947,10 @@ Panel.Visible=true
 Tween(Panel,{Position=UDim2.new(0.5,-170,0.5,-260)},0.45)
 end
 CloseBtn.MouseButton1Click:Connect(function() task.spawn(CloseMenu) end)
+local mini=false
 MinBtn.MouseButton1Click:Connect(function()
-Tween(Panel,{Size=UDim2.new(0,340,0,250)},0.25)
+mini=not mini
+Tween(Panel,{Size=UDim2.new(0,340,0,mini and 250 or PANELH)},0.25)
 end)
 TopBar.InputBegan:Connect(function(i)
 if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then dragP=true dStart=i.Position pStart=Panel.Position end
@@ -930,7 +967,7 @@ end)
 local ESPFolder=New("Folder",{Name="ZxVampireESP",Parent=SG})
 local ESPCache={}
 local Marker=nil
-local function ClearESP()
+ClearESP=function()
 for _,d in ipairs(ESPFolder:GetChildren()) do
 pcall(function() d:Destroy() end)
 end
@@ -1001,9 +1038,9 @@ task.spawn(function()
 local tick=0
 while task.wait(0.4) do
 if _G.ZxVampGen~=GEN then break end
-ScanNPCs()
-RefreshLvlButtons()
 tick=tick+1
+ScanNPCs(tick%10==1)
+RefreshLvlButtons()
 if tick%3==0 then RefreshNpcList() end
 end
 end)
@@ -1022,19 +1059,19 @@ end
 else
 deadT=0
 aliveOnce=true
-if not curTarget or curTarget.dead or not curTarget.m.Parent or (curTarget.hp<=0) then
-if curTarget and curTarget.hp<=0 then
+if curTarget then
+if not AliveNow(curTarget.m) then
 Notify("NPC "..curTarget.name.." MORREU - TROCA")
+curTarget=nil
 end
+end
+if not curTarget then
 curTarget=PickTarget()
 targetInfo=curTarget
 if curTarget then
 Notify("NOVO ALVO "..curTarget.name.." LV"..curTarget.lvl)
 ProbeTarget(curTarget)
 end
-else
-local h2=curTarget.m:FindFirstChildOfClass("Humanoid")
-if h2 then curTarget.hp=h2.Health end
 end
 if curTarget then
 if walkSpeed and hum then
