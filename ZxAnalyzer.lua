@@ -219,6 +219,31 @@ pcall(function() e.mh=hum.MaxHealth end)
 pcall(function() e.dn=hum.DisplayName end)
 pcall(function() e.st=tostring(hum:GetState()) end)
 pcall(function() e.rt=tostring(hum.RigType) end)
+e.at={}
+pcall(function()
+for k,v in pairs(m:GetAttributes()) do e.at["M."..tostring(k)]=tostring(v) end
+end)
+pcall(function()
+if hum then
+for k,v in pairs(hum:GetAttributes()) do e.at["H."..tostring(k)]=tostring(v) end
+end
+end)
+pcall(function()
+local r=m:FindFirstChild("HumanoidRootPart")
+if r then
+for k,v in pairs(r:GetAttributes()) do e.at["R."..tostring(k)]=tostring(v) end
+end
+end)
+e.lb=""
+pcall(function()
+for _,d in ipairs(m:GetDescendants()) do
+if d:IsA("TextLabel") or d:IsA("TextButton") then
+local tx=""
+pcall(function() tx=d.Text end)
+if tx and tx~="" then e.lb=e.lb..tx.." | " end
+end
+end
+end)
 e.rp=(d:FindFirstChild("HumanoidRootPart")~=nil) and 1 or 0
 e.an=(d:FindFirstChildOfClass("Animator")~=nil) and 1 or 0
 e.ds=-1
