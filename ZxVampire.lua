@@ -13,6 +13,8 @@ local old=LP.PlayerGui:FindFirstChild("ZxVampire")
 if old then old:Destroy() end
 end)
 pcall(function() RS:UnbindFromRenderStep("ZxVamp") end)
+local lastTarget, Nlist, ESPCache, SG, BG, LCard, LS, LTitle, LSub, LBTrack, LBFill, LPct, LStat, Panel, PStroke, TopBar, MinBtn, CloseBtn, TabBar, TabBtns, Pages, P1, P2, P3, BFarm, BFist, BWalk, BRescan, BPick, BStop, NpcInfo, NpcRows, NpcRowLay, LvlBtns, LvlLay, BTeach, LvlInfo, BReset, BReload, Nh, Pop, Scroll, Lay, ESPFolder, ESPCache, Marker, Nlist, NpcRows, LvlBtns
+
 local function New(c,p)
 local o=Instance.new(c)
 for k,v in pairs(p or {}) do o[k]=v end
@@ -103,8 +105,8 @@ end)
 end
 LoadCfg()
 
-local Nlist={}
 local function Notify(txt)
+Nlist=Nlist or {}
 if #Nlist>=4 then
 local old=Nlist[1]
 table.remove(Nlist,1)
@@ -965,15 +967,15 @@ UIS.InputEnded:Connect(function(i)
 if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then dragP=false end
 end)
 local ESPFolder=New("Folder",{Name="ZxVampireESP",Parent=SG})
-local ESPCache={}
-local Marker=nil
 ClearESP=function()
+ESPCache=ESPCache or {}
 for _,d in ipairs(ESPFolder:GetChildren()) do
 pcall(function() d:Destroy() end)
 end
 ESPCache={}
 end
 local function MakeESP(e)
+ESPCache=ESPCache or {}
 if ESPCache[e.m] then return end
 local holder=New("Folder",{Parent=ESPFolder})
 local bb=New("BillboardGui",{Size=UDim2.new(0,150,0,40),StudsOffset=Vector3.new(0,3,0),AlwaysOnTop=true,MaxDistance=900,Parent=holder})
@@ -1017,22 +1019,29 @@ Marker.Adornee=root
 Marker.Visible=true
 end
 task.spawn(function()
+pcall(function()
 for i=0,100 do
+if not LBFill or not LBFill.Parent then break end
 LBFill.Size=UDim2.new(i/100,0,1,0)
 LPct.Text=i.."%"
 LStat.Text="CARREGANDO "..i.."%"
 task.wait(0.012)
 end
-Tween(BG,{BackgroundTransparency=1},0.4)
-task.wait(0.4)
-BG:Destroy()
+end)
+pcall(function() Tween(BG,{BackgroundTransparency=1},0.4) end)
+task.wait(0.45)
+pcall(function() if BG then BG:Destroy() end end)
 Panel.Visible=true
-Tween(Panel,{Position=UDim2.new(0.5,-170,0.5,-260)},0.5)
+pcall(function() Tween(Panel,{Position=UDim2.new(0.5,-170,0.5,-260)},0.5) end)
 ScanNPCs()
 RefreshLvlButtons()
 RefreshNpcList()
 RefreshLvlInfo()
 Notify("ZX VAMPIRE LIFE PRONTO")
+end)
+task.spawn(function()
+task.wait(9)
+pcall(function() if BG and BG.Parent then BG:Destroy() end end)
 end)
 task.spawn(function()
 local tick=0
@@ -1189,3 +1198,4 @@ end)
 task.spawn(function()
 StartCombatSpy()
 end)
+_G.ZXV={SG=SG,BG=BG,LCard=LCard,LPct=LPct,LStat=LStat,LBFill=LBFill,Panel=Panel,Pages=Pages,TabBtns=TabBtns,NpcRows=NpcRows,LvlBtns=LvlBtns,NpcInfo=NpcInfo,FarmStat=FarmStat,BFarm=BFarm,BFist=BFist,BWalk=BWalk,Pop=Pop,Nh=Nh,Scroll=Scroll}
