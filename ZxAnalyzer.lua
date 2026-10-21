@@ -234,6 +234,25 @@ if r then
 for k,v in pairs(r:GetAttributes()) do e.at["R."..tostring(k)]=tostring(v) end
 end
 end)
+e.ch={}
+pcall(function()
+for _,d in ipairs(m:GetChildren()) do
+local v=""
+pcall(function() if d:IsA("IntValue") or d:IsA("NumberValue") or d:IsA("StringValue") or d:IsA("BoolValue") then v=tostring(d.Value) end end)
+table.insert(e.ch,d.ClassName..":"..d.Name..(v~="" and ("="..v) or ""))
+end
+end)
+e.vl={}
+pcall(function()
+for _,d in ipairs(m:GetDescendants()) do
+if d:IsA("IntValue") or d:IsA("NumberValue") or d:IsA("StringValue") then
+local nm=string.lower(d.Name)
+if string.find(nm,"level") or string.find(nm,"year") or string.find(nm,"rank") or string.find(nm,"tier") or string.find(nm,"grade") or string.find(nm,"xp") then
+table.insert(e.vl,d.ClassName..":"..d.Name.."="..tostring(d.Value))
+end
+end
+end
+end)
 e.lb=""
 pcall(function()
 for _,d in ipairs(m:GetDescendants()) do
@@ -472,6 +491,8 @@ table.insert(out,"NPCS "..npcCount.." INIM "..npcEnemy.." ALI "..npcAlly.." NEU 
 for _,e in ipairs(npcs) do
 if #out>=340 then break end
 table.insert(out,"NPC "..e.k.." "..e.n.." HP "..e.h.."/"..e.mh.." D "..e.ds.." TY "..e.ty.." ST "..e.st.." "..e.p)
+if e.vl and #e.vl>0 then table.insert(out,"   VL "..table.concat(e.vl,",")) end
+if e.ch and #e.ch>0 then table.insert(out,"   CH "..table.concat(e.ch,",")) end
 end
 table.insert(out,"FAKE PLAYERS "..#npcPlayers)
 for _,e in ipairs(npcPlayers) do table.insert(out,"NP "..e.n) end

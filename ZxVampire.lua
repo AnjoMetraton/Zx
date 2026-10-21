@@ -60,7 +60,7 @@ local tpOn=false
 local atkDist=7
 local keepDist=4
 local walkSpeed=24
-local atkInterval=0.45
+local atkInterval=0.9
 local wantLevel=0
 local curTarget=nil
 lastTarget=nil
@@ -76,6 +76,7 @@ local lastWalk=0
 local deadT=0
 local aliveOnce=false
 local lmap={}
+local anchors={}
 local lvlCache={}
 local cfg={}
 local CFGFILE="ZXVL_CONFIG.json"
@@ -88,13 +89,14 @@ local d=Http:JSONDecode(s)
 if type(d)=="table" then
 lmap=d.lmap or {}
 cfg=d.cfg or {}
+anchors=d.anchors or {}
 end
 end)
 end
 local function SaveCfg()
 pcall(function()
 if not writefile then return end
-writefile(CFGFILE,Http:JSONEncode({lmap=lmap,cfg=cfg,place=game.PlaceId}))
+writefile(CFGFILE,Http:JSONEncode({lmap=lmap,anchors=anchors,cfg=cfg,place=game.PlaceId}))
 end)
 end
 LoadCfg()
@@ -151,13 +153,59 @@ return best,"LABEL"
 end
 local function EstLevel(hp)
 if not hp or hp<=0 then return 0 end
+if #anchors>=2 then
+local sx,sy,sxx,sxy,n=0,0,0,0,0
+for _,a in ipairs(anchors) do
+if a.hp and a.hp>0 and a.lvl and a.lvl>0 then
+local x=math.log(a.hp)
+local y=math.log(a.lvl)
+sx=sx+x
+sy=sy+y
+sxx=sxx+x*x
+sxy=sxy+x*y
+n=n+1
+end
+end
+if n>=2 then
+local den=n*sxx-sx*sx
+if math.abs(den)>0.0001 then
+local p=(n*sxy-sx*sy)/den
+local a=math.exp((sy-p*sx)/n)
+if p>0 and a>0 then
+local lv=math.pow(hp/a,1/p)
+if lv>0 and lv<99999 then return math.floor(lv+0.5) end
+end
+end
+end
+end
+if lmap[string.format("%d",math.floor(hp+0.5))] then return lmap[string.format("%d",math.floor(hp+0.5))] end
 return math.floor(math.pow(hp/1288,1/0.3088)+0.5)
+end
+local function ValueLevel(m)
+local best=nil
+pcall(function()
+for _,d in ipairs(m:GetDescendants()) do
+if d:IsA("IntValue") or d:IsA("NumberValue") or d:IsA("StringValue") then
+local nm=string.lower(d.Name)
+if string.find(nm,"level") or string.find(nm,"year") then
+local v=NumOf(d.Value)
+if v and v>0 then
+if not best then best=v end
+end
+end
+end
+end
+end)
+return best
 end
 local function NPCLevel(m,hum)
 local c=lvlCache[m]
 local now=os.clock()
 if c and now-c.t<5 then return c.l,c.s end
-local v,s=AttrLevel(m,hum)
+local v=ValueLevel(m)
+if v then lvlCache[m]={l=v,s="VALUE",t=now} return v,"VALUE" end
+local s
+v,s=AttrLevel(m,hum)
 if v then lvlCache[m]={l=v,s=s,t=now} return v,s end
 v,s=LabelLevel(m)
 if v then lvlCache[m]={l=v,s=s,t=now} return v,s end
@@ -293,6 +341,7 @@ end
 return nil
 end
 local combatRem=nil
+local combatQuery=nil
 local function FindFists(ch)
 if not ch then return nil end
 local bp=LP:FindFirstChildOfClass("Backpack")
@@ -595,7 +644,7 @@ Section(P1,"AJUSTES")
 MakeSlider(P1,"DIST ATAQUE",3,25,atkDist,function(v) atkDist=v end)
 MakeSlider(P1,"DIST MINIMA",1,20,keepDist,function(v) keepDist=v end)
 MakeSlider(P1,"VELOCIDADE",8,80,walkSpeed,function(v) walkSpeed=v end)
-MakeSlider(P1,"INTERVALO ATAQUE",1,20,4,function(v) atkInterval=v/10 end)
+MakeSlider(P1,"INTERVALO ATAQUE",5,30,9,function(v) atkInterval=v/10 end)
 Section(P1,"NIVEL DO NPC")
 local LevelBox,LvlInput=MakeInput(P1,"NIVEL","0 = TODOS",function(txt)
 local n=tonumber(txt)
@@ -631,7 +680,9 @@ local function RefreshLvlInfo()
 local ks={}
 for k,v in pairs(lmap) do table.insert(ks,k.."="..v) end
 table.sort(ks)
-LvlInfo.Text=#ks>0 and table.concat(ks,"  ") or "MAPA DE NIVEL VAZIO"
+local an=""
+for _,a in ipairs(anchors) do an=an..a.hp.."="..a.lvl.."  " end
+LvlInfo.Text="HP=NIVEL: "..(#ks>0 and table.concat(ks,"  ") or "-").."\nCURVA: "..(#anchors>0 and an or "PADRAO (2 PONTO NECESSARIO)")
 end
 local function RefreshNpcList()
 for _,c in ipairs(NpcRows:GetChildren()) do
@@ -762,6 +813,8 @@ Notify("CONFIG SALVA")
 end)
 BReset.MouseButton1Click:Connect(function()
 lmap={}
+anchors={}
+lvlCache={}
 SaveCfg()
 RefreshLvlInfo()
 Notify("MAPA LIMPO")
@@ -778,13 +831,20 @@ New("UICorner",{CornerRadius=UDim.new(0,7),Parent=inp})
 inp.FocusLost:Connect(function()
 local n=tonumber(inp.Text)
 if n and curTarget and curTarget.mh>0 then
-lmap[string.format("%d",math.floor(curTarget.mh+0.5))]=n
+local hp=math.floor(curTarget.mh+0.5)
+lmap[tostring(hp)]=n
+local found=false
+for _,a in ipairs(anchors) do
+if a.hp==hp then a.lvl=n found=true end
+end
+if not found then table.insert(anchors,{hp=hp,lvl=n}) end
 SaveCfg()
+lvlCache={}
 RefreshLvlInfo()
 ScanNPCs()
 RefreshLvlButtons()
 RefreshNpcList()
-Notify("NIVEL "..n.." APRENDIDO PARA HP "..math.floor(curTarget.mh))
+Notify("NIVEL "..n.." APRENDIDO HP "..hp.." ANCORAS "..#anchors)
 end
 pcall(function() inp:Destroy() end)
 end)
@@ -968,7 +1028,10 @@ Notify("NPC "..curTarget.name.." MORREU - TROCA")
 end
 curTarget=PickTarget()
 targetInfo=curTarget
-if curTarget then Notify("NOVO ALVO "..curTarget.name.." LV"..curTarget.lvl) end
+if curTarget then
+Notify("NOVO ALVO "..curTarget.name.." LV"..curTarget.lvl)
+ProbeTarget(curTarget)
+end
 else
 local h2=curTarget.m:FindFirstChildOfClass("Humanoid")
 if h2 then curTarget.hp=h2.Health end
@@ -990,6 +1053,86 @@ end
 end
 end
 end)
+local combatLog={}
+local probeLog={}
+function ProbeTarget(e)
+if not combatQuery or not e or e.probed then return end
+e.probed=true
+local m=e.m
+local hum=m:FindFirstChildOfClass("Humanoid")
+local root=m:FindFirstChild("HumanoidRootPart")
+local variants={{m},{hum},{root},{m,hum},{m,root},{hum,root}}
+for _,args in ipairs(variants) do
+task.spawn(function()
+pcall(function()
+local r=combatQuery:InvokeServer(unpack(args))
+if type(r)=="table" then
+local lv=nil
+pcall(function() lv=r.Level or r.Years or r.level or r.Rank end)
+local parts={}
+for k,v in pairs(r) do
+local tv=type(v)
+if tv=="number" or tv=="string" then parts[#parts+1]=tostring(k).."="..tostring(v) end
+end
+table.insert(probeLog,{n=e.name,lv=tostring(lv),d=table.concat(parts,","),t=os.time()})
+if #probeLog>60 then table.remove(probeLog,1) end
+if lv then e.lvl=lv e.src="QUERY" end
+end
+end)
+end)
+end
+end
+local function StartCombatSpy()
+pcall(function()
+local rs=game:GetService("ReplicatedStorage")
+local names={"CombatState","HitReaction","NPCCombatAuthority","DamagePopupRemote","CombatSound"}
+for _,nm in ipairs(names) do
+for _,d in ipairs(rs:GetDescendants()) do
+if d:IsA("RemoteEvent") and d.Name==nm then
+d.OnClientEvent:Connect(function(...)
+local a={...}
+local parts={}
+for i,v in ipairs(a) do
+if i>6 then break end
+local t=type(v)
+if t=="table" then
+local nm2=""
+pcall(function() nm2=v.Name or "" end)
+parts[#parts+1]=t..":"..nm2
+if type(v.Value)=="number" then parts[#parts+1]="V="..v.Value end
+else
+parts[#parts+1]=t..":"..tostring(v)
+end
+end
+table.insert(combatLog,{r=nm,d=table.concat(parts," | "),t=os.time()})
+if #combatLog>120 then table.remove(combatLog,1) end
+end)
+end
+end
+end
+end)
+pcall(function()
+local q=rs:FindFirstChild("Network")
+if q then
+local fn=q:FindFirstChild("Functions")
+if fn then
+local cq=fn:FindFirstChild("CombatQuery")
+if cq and cq:IsA("RemoteFunction") then
+combatQuery=cq
+end
+end
+end
+end)
+end
+task.spawn(function()
+while task.wait(2) do
+if #combatLog>0 then
+pcall(function()
+if writefile then writefile("ZXVL_COMBAT.json",Http:JSONEncode({combat=combatLog,probe=probeLog})) end
+end)
+end
+end
+end)
 task.spawn(function()
 while task.wait(1) do
 if _G.ZxVampGen~=GEN then break end
@@ -1005,4 +1148,7 @@ end)
 RS.RenderStepped:Connect(function()
 if _G.ZxVampGen~=GEN then return end
 PStroke.Color=Color3.fromRGB(100,0,220)
+end)
+task.spawn(function()
+StartCombatSpy()
 end)
